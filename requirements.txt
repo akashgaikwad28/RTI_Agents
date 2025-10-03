@@ -1,1 +1,25 @@
-# Add your dependencies here
+# Core Python libraries
+python-dateutil
+pydantic
+
+# LangChain & LangGraph (latest compatible versions)
+langchain
+langgraph
+
+# MCP client dependencies
+openai
+googletrans
+requests
+
+# MongoDB
+pymongo
+
+# Email validation
+email-validator
+
+# Optional Web API for future
+fastapi
+uvicorn
+# Utilities
+python-dotenv
+rich

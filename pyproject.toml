@@ -8,33 +8,38 @@ authors = [
 requires-python = ">=3.11"
 
 dependencies = [
-  # Core Python libraries
+  # Core Libraries
   "python-dateutil",
   "pydantic",
+  "python-dotenv",
+  "rich",
 
-  # LangChain & LangGraph
-  "langchain>=0.1.14",
+  # LangChain + LangGraph Ecosystem
+  "langchain",
+  "langchain-community",
+  "langchain-core",
+  "langchain-openai",
   "langgraph",
 
-  # MCP client dependencies
+  # LLM Integrations
   "openai",
-  "googletrans==4.0.0-rc1",
+  "googletrans",
   "requests",
 
-  # MongoDB
+  # Memory + Database
   "pymongo",
+  "redis",
 
-  # Email validation
-  "email-validator",
-
-  # Optional Web API
+  # Web & API
   "fastapi",
   "uvicorn",
 
-  # Utilities
-  "python-dotenv",
-  "rich"
+  # Testing & CI/CD utilities
+  "pytest",
+  "httpx",
+  "black",
+  "isort",
+  "flake8"
 ]
 
 [tool.uv]
-

@@ -1,16 +1,26 @@
+# utils/exception_handler.py
+
 import traceback
+from functools import wraps
 from utils.logger import logger
 
-def handle_exception(e):
+def exception_handler(func):
     """
-    Logs detailed exception information with traceback.
+    Decorator that logs detailed exception information with traceback.
     """
-    tb = traceback.extract_tb(e.__traceback__)
-    if tb:
-        filename, line, func, _ = tb[-1]
-        logger.error(
-            f"Exception occurred in {filename}, line {line}, in {func}: {str(e)}",
-            exc_info=True
-        )
-    else:
-        logger.error(f"Exception: {str(e)}", exc_info=True)
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            if tb:
+                filename, line, func_name, _ = tb[-1]
+                logger.error(
+                    f"Exception occurred in {filename}, line {line}, in {func_name}: {str(e)}",
+                    exc_info=True
+                )
+            else:
+                logger.error(f"Exception: {str(e)}", exc_info=True)
+            raise  # Re-raise the exception after logging
+    return wrapper

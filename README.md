@@ -28,15 +28,121 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 ## 📁 Project Structure
 
 ```
-RTI_Agent/
-├── app.py                  # Orchestrator (LangGraph workflow)
-├── agents/                 # Core agents (formatter, classifier, info fetcher, tracker)
-├── mcp_clients/            # MCP wrappers (Groq, Gemini, Translate, Mongo, Email)
-├── database/schema.py      # RTI data model (Pydantic)
-├── config/settings.py      # API keys & config
-├── utils/                  # Prompts, templates, helpers
-├── requirements.txt        # Dependencies
-└── .rti/                   # Virtual environment
+
+│   .dockerignore
+│   .env
+│   .gitignore
+│   app.py
+│   docker-compose.yml
+│   Dockerfile
+│   LICENSE
+│   pyproject.toml
+│   README.md
+│   requirements.txt
+│   uv.lock
+│
+├───.github
+│   └───workflows
+│           ci-cd.yml
+│
+├───agents
+│   │   classifier_agent.py
+│   │   formatter_agent.py
+│   │   info_fetcher_agent.py
+│   │   tracker_agent.py
+│   │   __init__.py
+│   │
+│   ├───base
+│   │   │   base_agent.py
+│   │   │   graph_manager.py
+│   │   │
+│   │   └───__pycache__
+│   │           base_agent.cpython-311.pyc
+│   │           graph_manager.cpython-311.pyc
+│   │
+│   ├───nodes
+│   │   │   classifier_node.py
+│   │   │   formatter_node.py
+│   │   │   info_fetcher_node.py
+│   │   │   tracker_node.py
+│   │   │
+│   │   └───__pycache__
+│   │           classifier_node.cpython-311.pyc
+│   │
+│   └───__pycache__
+│           __init__.cpython-311.pyc
+│
+├───chains
+│       classifier_chain.py
+│       formatter_chain.py
+│       info_fetcher_chain.py
+│       tracker_chain.py
+│       utils_chain.py
+│
+├───config
+│   │   settings.py
+│   │
+│   └───__pycache__
+│           settings.cpython-311.pyc
+│
+├───database
+│       schema.py
+│
+├───logs
+│       rti_system.log
+│
+├───mcp_clients
+│   │   email_client.py
+│   │   gemini_client.py
+│   │   groq_client.py
+│   │   mongo_client.py
+│   │   translator_client.py
+│   │
+│   └───__pycache__
+│           gemini_client.cpython-311.pyc
+│           groq_client.cpython-311.pyc
+│           mongo_client.cpython-311.pyc
+│           translator_client.cpython-311.pyc
+│
+├───memory
+│   │   memory_chain.py
+│   │   memory_manager.py
+│   │   memory_node.py
+│   │   memory_store.json
+│   │   __init__.py
+│   │
+│   └───__pycache__
+│           memory_manager.cpython-311.pyc
+│           __init__.cpython-311.pyc
+│
+├───prompts
+│       classifier_prompt.txt
+│       formatter_prompt.txt
+│       info_fetcher_prompt.txt
+│       tracker_prompt.txt
+│
+├───schemas
+│   │   agent_response_schema.py
+│   │   rti_query_schema.py
+│   │
+│   └───__pycache__
+│           rti_query_schema.cpython-311.pyc
+│
+└───utils
+    │   exception_handler.py
+    │   helpers.py
+    │   logger.py
+    │   logging_config.py
+    │   templates.py
+    │   __init__.py
+    │
+    └───__pycache__
+            exception_handler.cpython-311.pyc
+            logger.cpython-311.pyc
+            logging_config.cpython-311.pyc
+            __init__.cpython-311.pyc
+
+
 ```
 
 ---

@@ -28,7 +28,6 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 ## 📁 Project Structure
 
 ```
-
 │   .dockerignore
 │   .env
 │   .gitignore
@@ -55,22 +54,17 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 │   ├───base
 │   │   │   base_agent.py
 │   │   │   graph_manager.py
-│   │   │
-│   │   └───__pycache__
-│   │           base_agent.cpython-311.pyc
-│   │           graph_manager.cpython-311.pyc
+│   │   
+│   │   
+│   │           
+│   │           
 │   │
-│   ├───nodes
-│   │   │   classifier_node.py
-│   │   │   formatter_node.py
-│   │   │   info_fetcher_node.py
-│   │   │   tracker_node.py
-│   │   │
-│   │   └───__pycache__
-│   │           classifier_node.cpython-311.pyc
-│   │
-│   └───__pycache__
-│           __init__.cpython-311.pyc
+│   └───nodes
+│       │   classifier_node.py
+│       │   formatter_node.py
+│       │   info_fetcher_node.py
+│       │   tracker_node.py
+│      
 │
 ├───chains
 │       classifier_chain.py
@@ -80,10 +74,7 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 │       utils_chain.py
 │
 ├───config
-│   │   settings.py
-│   │
-│   └───__pycache__
-│           settings.cpython-311.pyc
+│       settings.py
 │
 ├───database
 │       schema.py
@@ -92,28 +83,18 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 │       rti_system.log
 │
 ├───mcp_clients
-│   │   email_client.py
-│   │   gemini_client.py
-│   │   groq_client.py
-│   │   mongo_client.py
-│   │   translator_client.py
-│   │
-│   └───__pycache__
-│           gemini_client.cpython-311.pyc
-│           groq_client.cpython-311.pyc
-│           mongo_client.cpython-311.pyc
-│           translator_client.cpython-311.pyc
+│       email_client.py
+│       gemini_client.py
+│       groq_client.py
+│       mongo_client.py
+│       translator_client.py
 │
 ├───memory
-│   │   memory_chain.py
-│   │   memory_manager.py
-│   │   memory_node.py
-│   │   memory_store.json
-│   │   __init__.py
-│   │
-│   └───__pycache__
-│           memory_manager.cpython-311.pyc
-│           __init__.cpython-311.pyc
+│       memory_chain.py
+│       memory_manager.py
+│       memory_node.py
+│       memory_store.json
+│       __init__.py
 │
 ├───prompts
 │       classifier_prompt.txt
@@ -122,26 +103,16 @@ Each module is designed as a LangGraph node, enabling scalable orchestration and
 │       tracker_prompt.txt
 │
 ├───schemas
-│   │   agent_response_schema.py
-│   │   rti_query_schema.py
-│   │
-│   └───__pycache__
-│           rti_query_schema.cpython-311.pyc
+│       agent_response_schema.py
+│       rti_query_schema.py
 │
 └───utils
-    │   exception_handler.py
-    │   helpers.py
-    │   logger.py
-    │   logging_config.py
-    │   templates.py
-    │   __init__.py
-    │
-    └───__pycache__
-            exception_handler.cpython-311.pyc
-            logger.cpython-311.pyc
-            logging_config.cpython-311.pyc
-            __init__.cpython-311.pyc
-
+        exception_handler.py
+        helpers.py
+        logger.py
+        logging_config.py
+        templates.py
+        __init__.py
 
 ```
 

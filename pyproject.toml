@@ -12,6 +12,7 @@ dependencies = [
   "python-dateutil",
   "pydantic",
   "python-dotenv",
+  "pydantic[email]",
   "rich",
 
   # LangChain + LangGraph Ecosystem
@@ -20,26 +21,34 @@ dependencies = [
   "langchain-core",
   "langchain-openai",
   "langgraph",
+  "langchain-groq",
+  "libretranslatepy",
 
   # LLM Integrations
   "openai",
   "googletrans",
   "requests",
+  "groq",
+  "langchain-google-genai",
+  "google-generativeai",
 
   # Memory + Database
   "pymongo",
   "redis",
+  "motor",  # async MongoDB client
 
   # Web & API
   "fastapi",
   "uvicorn",
+  "aiohttp",
 
   # Testing & CI/CD utilities
   "pytest",
   "httpx",
   "black",
   "isort",
-  "flake8"
+  "flake8",
+  "pre-commit"
 ]
 
 [tool.uv]

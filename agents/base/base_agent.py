@@ -34,14 +34,32 @@ class BaseAgent(ABC):
 
     @exception_handler
     def call_groq(self, prompt: str, temperature: float = 0.7) -> str:
-        """
-        Call Groq LLM for generation
-        """
         logger.info(f"[{self.agent_name}] Calling Groq LLM...")
-        response = self.groq_client.generate(prompt=prompt, temperature=temperature)
-        logger.debug(f"[{self.agent_name}] Groq Response: {response}")
-        return response
+        try:
+            if hasattr(self.groq_client, "generate"):
+                # ✅ Fix: pass prompt as user_prompt
+                response = self.groq_client.generate(user_prompt=prompt, temperature=temperature)
+                output = getattr(response, "text", response)
+            elif hasattr(self.groq_client, "chat"):
+                response = self.groq_client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant for RTI automation."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=temperature
+                )
+                output = response.choices[0].message.content.strip()
+            else:
+                output = self.groq_client(prompt)
 
+            return output.strip()
+        except Exception as e:
+            logger.error(f"[{self.agent_name}] Groq API error: {str(e)}")
+            raise
+
+
+    # ✅ Keep Gemini the same if it uses `.generate()`
     @exception_handler
     def call_gemini(self, prompt: str, temperature: float = 0.7) -> str:
         """

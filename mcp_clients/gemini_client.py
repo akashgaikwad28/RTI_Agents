@@ -8,7 +8,7 @@ rewriting, translation, or contextual reasoning capabilities.
 """
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.schema import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from utils.logger import logger
 from utils.exception_handler import exception_handler
 from config.settings import settings
@@ -24,7 +24,7 @@ class GeminiClient:
         try:
             self.llm = ChatGoogleGenerativeAI(
                 model=model_name,
-                google_api_key=settings.GOOGLE_API_KEY,
+                google_api_key=settings.GEMINI_API_KEY,
                 temperature=temperature,
             )
             logger.info(f"✅ GeminiClient initialized with model '{model_name}'")

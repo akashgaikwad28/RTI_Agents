@@ -25,28 +25,41 @@ class ClassifierAgent(BaseAgent):
         logger.info("🧩 ClassifierAgent initialized.")
 
     @exception_handler
-    def run(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, **context) -> Dict[str, Any]:
         """
-        High-level method to classify user query
-        Steps:
-        1. Validate input
-        2. Call classifier node
-        3. Store results in memory
-        4. Return classification results
+        Classify the RTI query from user context.
+        Accepts flexible keyword arguments from GraphManager.
         """
 
-        # Step 1: Validate input
-        if not user_data.get("query"):
-            raise ValueError("User query is missing in input.")
+        
+        query = (
+            context.get("query")
+            or context.get("query_text")
+            or context.get("user_query")
+            or context.get("rti_query")
+            or context.get("message")
+        )
 
-        logger.info(f"[ClassifierAgent] Running classification for user: {user_data.get('name')}")
+        user_name = context.get("name") or "Unknown User"
 
-        # Step 2: Call classifier node
+        if not query:
+            raise ValueError("User query is missing in input context.")
+
+        logger.info(f"[ClassifierAgent] Running classification for user: {user_name}")
+
+        
+        user_data = {
+            "user_id": context.get("user_id"),
+            "name": user_name,
+            "query": query,
+        }
+
+     
         node_result = self.node.run(user_data)
 
-        # Step 3: Store in memory for this agent
+      
         self.save_memory("last_classification", node_result)
 
-        # Step 4: Return result
+      
         logger.info(f"[ClassifierAgent] Classification result: {node_result}")
         return node_result

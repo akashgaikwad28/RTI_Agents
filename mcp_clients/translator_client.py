@@ -1,71 +1,103 @@
-# translator_client.py - auto-generated
+# mcp_clients/translator_client.py
+
 """
 translator_client.py
 --------------------
-Handles multilingual translation using Googletrans (free API).
+Handles multilingual translation using LibreTranslate API.
 Auto-detects input language and translates between English
 and regional Indian languages for the RTI workflow.
 """
 
-from googletrans import Translator
+import json
+import requests
+from config.settings import settings
 from utils.logger import logger
 from utils.exception_handler import exception_handler
 
 
 class TranslatorClient:
-    """
-    A lightweight wrapper around googletrans Translator.
-    """
-
     def __init__(self):
+        """
+        Initialize LibreTranslate client with fallback to public endpoint.
+        """
+        self.endpoint = settings.TRANSLATOR_API_ENDPOINT or "https://libretranslate.de"
+        self.detect_url = f"{self.endpoint}/detect"
+        self.translate_url = f"{self.endpoint}/translate"
+
+        # Verify the endpoint is reachable
         try:
-            self.translator = Translator()
-            logger.info("✅ TranslatorClient initialized successfully.")
+            response = requests.get(self.endpoint, timeout=15)
+            if response.status_code == 200:
+                logger.info(f"✅ LibreTranslate client initialized: {self.endpoint}")
+            else:
+                logger.warning(f"⚠️ LibreTranslate endpoint reachable but returned status {response.status_code}")
         except Exception as e:
-            logger.error(f"❌ TranslatorClient initialization failed: {e}")
+            logger.error(f"❌ Failed to reach LibreTranslate endpoint: {e}")
             raise
 
     @exception_handler
     def detect_language(self, text: str) -> str:
         """
-        Detects the language of the given text.
-        Returns ISO language code (e.g., 'en', 'hi', 'mr', 'ta').
+        Detect the language of the given text.
+        Returns language code (e.g., 'en', 'hi', 'mr', etc.).
         """
+        payload = {"q": text}
         try:
-            result = self.translator.detect(text)
-            lang = result.lang
+            response = requests.post(self.detect_url, json=payload, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            if not data:
+                raise ValueError("Empty response from detect API.")
+
+            lang = data[0].get("language", "en")
             logger.info(f"🌐 Detected language: {lang}")
             return lang
-        except Exception as e:
-            logger.error(f"❌ Language detection failed: {e}")
-            raise
+
+        except requests.RequestException as e:
+            logger.error(f"❌ Network error during language detection: {e}")
+            return "en"
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"❌ Failed to decode detection response: {e}")
+            return "en"
 
     @exception_handler
-    def translate_to_english(self, text: str) -> str:
+    def translate(self, text: str, target_lang: str = "en") -> str:
         """
-        Translates the given text to English.
+        Automatically detects the source language and translates to the target language.
         """
+        source_lang = self.detect_language(text)
+
+        if source_lang == target_lang:
+            logger.info("⚠️ Source and target language are the same. Returning original text.")
+            return text
+
+        payload = {
+            "q": text,
+            "source": source_lang,
+            "target": target_lang,
+            "format": "text"
+        }
+
         try:
-            result = self.translator.translate(text, dest="en")
-            logger.info("✅ Successfully translated to English.")
-            return result.text
-        except Exception as e:
-            logger.error(f"❌ Translation to English failed: {e}")
-            raise
+            response = requests.post(self.translate_url, json=payload, timeout=15)
+            response.raise_for_status()
+            data = response.json()
 
-    @exception_handler
-    def translate_from_english(self, text: str, target_lang: str) -> str:
-        """
-        Translates the given text from English to a target language.
-        """
-        try:
-            result = self.translator.translate(text, dest=target_lang)
-            logger.info(f"✅ Successfully translated from English to {target_lang}.")
-            return result.text
-        except Exception as e:
-            logger.error(f"❌ Translation from English failed: {e}")
-            raise
+            translated_text = data.get("translatedText", "").strip()
+            if not translated_text:
+                raise ValueError("Empty translation result received.")
+
+            logger.info(f"✅ Translated from {source_lang} → {target_lang}")
+            return translated_text
+
+        except requests.RequestException as e:
+            logger.error(f"❌ Translation request failed: {e}")
+            return text
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"❌ Error parsing translation response: {e}")
+            return text
 
 
-# Singleton instance for shared usage
+# Singleton instance
 translator_client = TranslatorClient()

@@ -15,6 +15,8 @@ from agents.base.base_agent import BaseAgent
 from mcp_clients.mongo_client import MongoDBClient
 from utils.logger import logger
 from utils.exception_handler import exception_handler
+import os
+import json
 
 
 class InfoFetcherNode(BaseAgent):
@@ -83,19 +85,15 @@ class InfoFetcherNode(BaseAgent):
         }
 
     def _simulate_public_portal_check(self, query: str) -> Optional[str]:
-        """
-        Simulates a public RTI portal lookup.
-        For production, integrate actual API or scraping logic (if allowed).
-        """
-        simulated_database = {
-            "local agriculture schemes": "Details of local agriculture schemes are published at https://agriculture.gov.in/schemes",
-            "pesticide subsidies": "Information on pesticide subsidies available at https://agriculture.gov.in/pesticides",
-            "soil testing": "Soil testing reports are publicly available at https://soilhealth.dac.gov.in/",
-            "crop insurance": "Crop insurance details are available at https://pmfby.gov.in/"
-        }
+        data_path = os.path.join("data", "public_rti_knowledge.json")
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                simulated_database = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load simulated RTI data: {e}")
+            return None
 
         for key, value in simulated_database.items():
             if key.lower() in query.lower():
                 return value
-
         return None

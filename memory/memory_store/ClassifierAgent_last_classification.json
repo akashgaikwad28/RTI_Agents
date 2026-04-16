@@ -1,0 +1,10 @@
+{
+  "agent": "ClassifierAgent",
+  "key": "last_classification",
+  "value": {
+    "raw_query": "I want details about local agriculture schemes",
+    "translated_query": "I want details about local agriculture schemes",
+    "formal_query": "I want details about local agriculture schemes",
+    "department": "Unknown"
+  }
+}

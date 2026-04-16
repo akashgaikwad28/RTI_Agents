@@ -1,0 +1,5 @@
+{
+  "agent": "FormatterNode",
+  "key": "last_formal_query",
+  "value": "{\n  \"original_query\": \"I want details about local agriculture schemes\",\n  \"formal_query\": \"I respectfully request that you provide me with detailed information about the local agriculture schemes implemented by the relevant authorities in our area.\"\n}"
+}

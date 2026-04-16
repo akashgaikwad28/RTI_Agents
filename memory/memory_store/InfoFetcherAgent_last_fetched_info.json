@@ -1,0 +1,5 @@
+{
+  "agent": "InfoFetcherAgent",
+  "key": "last_fetched_info",
+  "value": "Details of local agriculture schemes are published at https://agriculture.gov.in/schemes"
+}

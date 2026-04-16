@@ -8,7 +8,7 @@ Manages LangGraph workflow for RTI Agents:
 - Integrates logging, memory, and exception handling
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, get_type_hints
 from utils.logger import logger
 from utils.exception_handler import exception_handler
 from agents.nodes.classifier_node import ClassifierNode
@@ -16,6 +16,8 @@ from agents.nodes.formatter_node import FormatterNode
 from agents.nodes.info_fetcher_node import InfoFetcherNode
 from agents.nodes.tracker_node import TrackerNode
 from memory.memory_manager import MemoryManager
+import inspect
+
 
 class GraphManager:
     """
@@ -51,23 +53,45 @@ class GraphManager:
     @exception_handler
     def run_agent(self, agent_name: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Executes a registered agent's run method with minimal context.
+        Executes a registered agent's run method with flexible context.
+        Detects whether the agent expects `context` or `**kwargs`.
         """
         agent = self.get_agent(agent_name)
         if not agent:
             raise ValueError(f"Agent '{agent_name}' not found in GraphManager.")
 
-        # Only pass query_text to formatter
+        # Filter context for formatter
         if agent_name == "formatter":
-            filtered_context = {
-                "query_text": context.get("query_text", "")
-            }
+            filtered_context = {"query_text": context.get("query_text", "")}
         else:
-            filtered_context = context  # pass full context to other agents
+            filtered_context = context
 
         logger.info(f"🚀 Running agent: {agent_name} with keys: {list(filtered_context.keys())}")
-        return agent.run(**filtered_context)
 
+        # Detect agent run() signature dynamically
+        try:
+            sig = inspect.signature(agent.run)
+            params = list(sig.parameters.values())
+
+            # Case 1: expects (self, context)
+            if len(params) == 2 and params[1].annotation in (Dict[str, Any], dict):
+                return agent.run(filtered_context)
+
+            # Case 2: expects (self, **kwargs)
+            elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                return agent.run(**filtered_context)
+
+            # Default fallback
+            else:
+                return agent.run(filtered_context)
+
+        except Exception as e:
+            logger.error(f"⚠️ Error while running agent '{agent_name}': {e}")
+            # safe fallback call
+            try:
+                return agent.run(filtered_context)
+            except Exception:
+                return agent.run(**filtered_context)
 
     @exception_handler
     def add_node(self, node_name: str, node_object: Any):
@@ -84,36 +108,30 @@ class GraphManager:
     def run_workflow(self, user_input: Dict[str, Any]) -> Dict[str, Any]:
         """
         Executes the full workflow:
-        User Input → Translator (inside agent) → Classifier → Formatter → Info Fetcher → Tracker
+        User Input → Translator → Classifier → Formatter → Info Fetcher → Tracker
         """
         logger.info("🚀 Running RTI workflow in GraphManager.")
-
-        context = {}
-        context.update(user_input)
+        context = dict(user_input)
 
         # Step 1: Classifier
         logger.info("🔹 Running Classifier Node")
         classification_result = self.nodes['classifier'].run(context)
-        context['department'] = classification_result.get('department')
-        context['formal_query'] = classification_result.get('formal_query')
-        context['raw_query'] = classification_result.get('raw_query')
+        context.update(classification_result)
 
         # Step 2: Formatter
         logger.info("🔹 Running Formatter Node")
         formatted_result = self.nodes['formatter'].run(context)
-        context['formatted_query'] = formatted_result.get('formatted_query')
+        context.update(formatted_result)
 
         # Step 3: Info Fetcher
         logger.info("🔹 Running InfoFetcher Node")
         info_result = self.nodes['info_fetcher'].run(context)
-        context['info_available'] = info_result.get('info_available')
-        context['info_data'] = info_result.get('info_data')
+        context.update(info_result)
 
         # Step 4: Tracker
         logger.info("🔹 Running Tracker Node")
         tracker_result = self.nodes['tracker'].run(context)
-        context['tracking_id'] = tracker_result.get('tracking_id')
-        context['status'] = tracker_result.get('status')
+        context.update(tracker_result)
 
         logger.info("✅ RTI workflow completed successfully.")
         return context

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTI-Agent v2.0 — System Documentation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1f2d45;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --accent3: #8b5cf6;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .layout {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Sidebar */
+  nav {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .nav-logo {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .nav-logo .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: white;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .nav-logo h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .nav-logo p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  nav ul { list-style: none; padding: 0 12px; }
+  nav ul li { margin-bottom: 2px; }
+  nav ul li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  nav ul li a:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  nav ul li a .num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    min-width: 20px;
+  }
+
+  /* Main content */
+  main {
+    flex: 1;
+    padding: 48px 56px;
+    max-width: 980px;
+  }
+
+  /* Hero */
+  .hero {
+    margin-bottom: 56px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(6,182,212,0.1);
+    border: 1px solid rgba(6,182,212,0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+  .hero .tag::before { content: '●'; font-size: 8px; }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+
+  .hero p {
+    color: var(--text-dim);
+    font-size: 16px;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  .hero-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .pill.blue { color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.08); }
+  .pill.purple { color: var(--accent3); border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.08); }
+  .pill.cyan { color: var(--accent2); border-color: rgba(6,182,212,0.3); background: rgba(6,182,212,0.08); }
+  .pill.green { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+
+  /* Sections */
+  section {
+    margin-bottom: 60px;
+    scroll-margin-top: 24px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
+  section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 28px 0 12px;
+    padding-left: 14px;
+    border-left: 2px solid var(--accent3);
+  }
+
+  p { color: var(--text-dim); margin-bottom: 12px; }
+
+  /* Diagram container */
+  .diagram-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .diagram-label::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--accent2);
+    border-radius: 50%;
+  }
+
+  .mermaid {
+    display: flex;
+    justify-content: center;
+  }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  /* Ordered list (lifecycle) */
+  ol.lifecycle {
+    list-style: none;
+    counter-reset: steps;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  ol.lifecycle li {
+    counter-increment: steps;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text-dim);
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  ol.lifecycle li:hover { border-color: rgba(59,130,246,0.3); }
+
+  ol.lifecycle li::before {
+    content: counter(steps);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.2);
+    min-width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  ol.lifecycle li strong { color: var(--text); }
+
+  /* Step-by-step */
+  ol.steps {
+    list-style: none;
+    counter-reset: s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: flex;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--text-dim);
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(31,45,69,0.6);
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 28px;
+    margin-top: 2px;
+  }
+  ol.steps li strong { color: var(--text); }
+  ol.steps li code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(139,92,246,0.12);
+    color: #a78bfa;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  thead {
+    background: var(--surface2);
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(31,45,69,0.5);
+    color: var(--text-dim);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  td:first-child, th:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  /* Node cards */
+  .node-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .node-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .node-card:hover {
+    border-color: rgba(59,130,246,0.3);
+    transform: translateY(-1px);
+  }
+
+  .node-card h4 {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent2);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .node-card h4::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent2);
+    border-radius: 50%;
+  }
+
+  .node-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .node-row .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    min-width: 52px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-top: 2px;
+  }
+  .node-row .val { color: var(--text-dim); }
+
+  /* Inline code */
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(59,130,246,0.1);
+    color: #93c5fd;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* Callout boxes */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    display: flex;
+    gap: 12px;
+    border: 1px solid;
+  }
+  .callout.green { background: rgba(16,185,129,0.07); border-color: rgba(16,185,129,0.2); color: #6ee7b7; }
+  .callout.yellow { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.2); color: #fcd34d; }
+  .callout.red { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); color: #fca5a5; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Execution trace */
+  .trace {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .trace-header {
+    background: var(--surface2);
+    padding: 12px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+  }
+
+  .trace-item {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid rgba(31,45,69,0.5);
+    font-size: 13px;
+  }
+  .trace-item:last-child { border-bottom: none; }
+
+  .trace-step {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 12px 16px;
+    min-width: 44px;
+    border-right: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .trace-agent {
+    padding: 12px 16px;
+    min-width: 120px;
+    border-right: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .trace-detail {
+    padding: 12px 16px;
+    color: var(--text-dim);
+    flex: 1;
+  }
+
+  .trace-status {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+  }
+  .status-ok { color: var(--green); }
+  .status-warn { color: var(--yellow); }
+  .status-pause { color: var(--accent); }
+
+  /* Memory tiers */
+  .memory-tier {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .memory-card {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .memory-card .tier-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .memory-card .tier-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .memory-card .tier-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Strengths / Risks */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .review-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .review-card h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .review-card.strengths h4 { color: var(--green); }
+  .review-card.risks h4 { color: var(--yellow); }
+  .review-card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .review-card ul li {
+    font-size: 13px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 10px;
+  }
+  .review-card ul li .bullet {
+    font-size: 10px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .strengths .bullet { color: var(--green); }
+  .risks .bullet { color: var(--yellow); }
+  .review-card ul li strong { color: var(--text); }
+
+  .recs { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .rec {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .rec-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Sequence diagram override */
+  .mermaid .messageText { fill: #94a3b8 !important; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    nav { display: none; }
+    main { padding: 32px 24px; }
+    .two-col { grid-template-columns: 1fr; }
+    .node-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<nav>
+  <div class="nav-logo">
+    <div class="badge">DOCS v2.0</div>
+    <h2>RTI-Agent</h2>
+    <p>System Documentation</p>
+  </div>
+  <ul>
+    <li><a href="#s1"><span class="num">01</span> High Level Flow</a></li>
+    <li><a href="#s2"><span class="num">02</span> Request Flow</a></li>
+    <li><a href="#s3"><span class="num">03</span> LangGraph Execution</a></li>
+    <li><a href="#s4"><span class="num">04</span> Node Analysis</a></li>
+    <li><a href="#s5"><span class="num">05</span> RAG Pipeline</a></li>
+    <li><a href="#s6"><span class="num">06</span> Memory Architecture</a></li>
+    <li><a href="#s7"><span class="num">07</span> HITL Flow</a></li>
+    <li><a href="#s8"><span class="num">08</span> Observability & Security</a></li>
+    <li><a href="#s9"><span class="num">09</span> Database Architecture</a></li>
+    <li><a href="#s10"><span class="num">10</span> Execution Trace</a></li>
+    <li><a href="#s11"><span class="num">11</span> Engineering Review</a></li>
+  </ul>
+</nav>
+
+<!-- Main -->
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="tag">Application Documentation</div>
+    <h1>RTI-Agent v2.0</h1>
+    <p>A deep-dive analysis of the system lifecycle — explaining the internal mechanics of the LangGraph-based multi-agent orchestration pipeline.</p>
+    <div class="hero-pills">
+      <span class="pill blue">LangGraph</span>
+      <span class="pill purple">Multi-Agent</span>
+      <span class="pill cyan">FastAPI</span>
+      <span class="pill green">FAISS · Redis · MongoDB</span>
+      <span class="pill blue">Groq · Gemini</span>
+    </div>
+  </div>
+
+  <!-- 1. High Level -->
+  <section id="s1">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <h2>High Level System Flow</h2>
+    </div>
+    <p>The RTI-Agent operates as an asynchronous, state-aware multi-agent system. It transitions from a stateless request-response model into a persistent, checkpointed workflow.</p>
+
+    <h3>End-to-End Lifecycle</h3>
+    <ol class="lifecycle">
+      <li><strong>Ingress</strong> — User submits a query via FastAPI.</li>
+      <li><strong>Hardening</strong> — Middleware performs Auth, Rate Limiting, Sanitization, and PII Masking.</li>
+      <li><strong>Orchestration</strong> — LangGraph initializes an <code>RTIAgentState</code> and begins node execution.</li>
+      <li><strong>Reasoning</strong> — Agents (Router, Formatter, Classifier, Reviewer) collaborate using multi-model orchestration (Groq/Gemini).</li>
+      <li><strong>Grounding</strong> — Retrieval Agent pulls facts from FAISS and Government Portals.</li>
+      <li><strong>Governance</strong> — Graph interrupts at <code>approval_node</code> for Human-in-the-Loop review.</li>
+      <li><strong>Persistence</strong> — <code>TrackerNode</code> finalizes records in MongoDB and sends notifications.</li>
+    </ol>
+
+    <h3>System Architecture Diagram</h3>
+    <div class="diagram-wrap">
+      <div class="diagram-label">System Architecture — Full Stack View</div>
+      <div class="mermaid">
+graph TD
+    User((User)) -->|POST /submit| API[FastAPI Gateway]
+
+    subgraph MW["Middleware Layer"]
+        API --> Auth[API Key Auth]
+        Auth --> RL[Rate Limiter]
+        RL --> Sanitizer[Sanitizer + PII Masker]
+    end
+
+    subgraph LG["LangGraph Orchestrator"]
+        Sanitizer --> Graph[StateGraph]
+        Graph --> State[(RTIAgentState)]
+        State <--> Checkpoint[(SQLite Checkpointer)]
+    end
+
+    subgraph Agents["Multi-Agent Ecosystem"]
+        Graph --> Router[Router Agent]
+        Graph --> Formatter[Formatter Agent]
+        Graph --> Classifier[Classifier Agent]
+        Graph --> Retrieval[Retrieval Agent]
+        Graph --> Reviewer[Reviewer Agent]
+        Graph --> Approval[Approval Agent - HITL]
+        Graph --> Reflection[Reflection Agent]
+        Graph --> Tracker[Tracker Agent]
+    end
+
+    subgraph Ext["External Services"]
+        Retrieval <--> FAISS[(FAISS Vector Store)]
+        Retrieval <--> RCache[(Redis Semantic Cache)]
+        Retrieval <--> Tools[Gov Portal Tools]
+        Tracker --> Mongo[(MongoDB)]
+        Tracker --> Email[SMTP Notification]
+        Agents <--> LLM[Groq / Gemini / OpenAI]
+    end
+
+    subgraph Obs["Observability"]
+        Graph --> Tracing[LangSmith]
+        Graph --> Prom[Prometheus / Grafana]
+        Graph --> Logs[JSON Logs]
+    end
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Request Flow -->
+  <section id="s2">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <h2>Complete Request Flow</h2>
+    </div>
+    <p>Step-by-step execution of <code>POST /api/v1/submit</code>:</p>
+    <ol class="steps">
+      <li><strong>Request Validation</strong> — FastAPI validates the <code>RTISubmitRequest</code> schema (Pydantic).</li>
+      <li><strong>Request ID Generation</strong> — <code>RequestIDMiddleware</code> generates a UUID and injects it into <code>X-Request-ID</code> headers and <code>request.state</code>.</li>
+      <li><strong>Sanitization</strong> — <code>security/sanitizer.py</code> strips HTML, SQL injection, and 15+ prompt injection patterns.</li>
+      <li><strong>Graph Initialization</strong> — <code>api/routers/rti.py</code> creates the initial <code>RTIAgentState</code>: <code>request_id</code> and <code>thread_id</code> set, <code>raw_query</code> preserved, <code>status</code> set to "pending".</li>
+      <li><strong>Execution Start</strong> — <code>graph.ainvoke(initial_state, config)</code> is called.</li>
+      <li><strong>Checkpointing</strong> — LangGraph immediately saves the initial state into <code>rti_checkpoints.db</code> indexed by <code>thread_id</code>.</li>
+      <li><strong>Async Boundary</strong> — The graph runs asynchronously. Since <code>interrupt_before=["approval_node"]</code> is set, it runs all nodes until the Approval phase.</li>
+      <li><strong>API Response</strong> — Endpoint returns a <code>202 Accepted</code> with <code>request_id</code> and <code>stream_url</code>.</li>
+    </ol>
+  </section>
+
+  <!-- 3. LangGraph -->
+  <section id="s3">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <h2>LangGraph Execution Flow</h2>
+    </div>
+    <p>The graph is a directed cyclic graph with self-healing reflection loops.</p>
+
+    <div class="diagram-wrap">
+      <div class="diagram-label">Execution Graph — Node Transitions</div>
+      <div class="mermaid">
+graph LR
+    START((START)) --> Router[Router Node]
+    Router -->|new_request| Formatter[Formatter Node]
+    Router -->|status_check| Tracker[Tracker Node]
+
+    Formatter --> Classifier[Classifier Node]
+    Classifier --> Retrieval[Retrieval Node]
+    Retrieval --> Reviewer[Reviewer Node]
+
+    Reviewer -->|passed| Approval[Approval Node]
+    Reviewer -->|failed| Reflection[Reflection Node]
+
+    Approval -->|approved| Tracker
+    Approval -->|rejected| Reflection
+
+    Reflection -->|retry| Formatter
+    Reflection -->|max_retries| Tracker
+
+    Tracker --> END((END))
+      </div>
+    </div>
+
+    <h3>State Transitions</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>From</th><th>To</th><th>Trigger</th><th>Key State Change</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>START</td><td>Router</td><td>Entry</td><td><code>request_id</code> set</td></tr>
+          <tr><td>Router</td><td>Formatter</td><td>Intent = "new_request"</td><td><code>intent</code> set</td></tr>
+          <tr><td>Formatter</td><td>Classifier</td><td>Linear</td><td><code>formal_query</code> generated</td></tr>
+          <tr><td>Retrieval</td><td>Reviewer</td><td>Linear</td><td><code>retrieved_context</code> populated</td></tr>
+          <tr><td>Reviewer</td><td>Approval</td><td><code>review_passed=True</code></td><td>Graph <strong>Interrupted</strong> (PAUSE)</td></tr>
+          <tr><td>Approval</td><td>Tracker</td><td><code>approval_status="approved"</code></td><td><code>tracking_id</code> generated</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. Nodes -->
+  <section id="s4">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <h2>Node-by-Node Analysis</h2>
+    </div>
+    <div class="node-grid">
+      <div class="node-card">
+        <h4>router_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>raw_query</code>, <code>sanitized_query</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Uses Groq Llama-3 (fast) to categorize intent.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val">Sets <code>intent</code> ("new_request" | "status_check")</span></div>
+      </div>
+      <div class="node-card">
+        <h4>formatter_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>sanitized_query</code>, <code>language</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Invokes <code>translate_tool</code> if language ≠ "en". Uses Groq Llama-3 70B to draft formal RTI application.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val">Sets <code>formal_query</code> and <code>rti_template</code></span></div>
+      </div>
+      <div class="node-card">
+        <h4>classifier_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>formal_query</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Uses Gemini Pro. Cross-references <code>VALID_DEPARTMENTS</code> in <code>tools/department_lookup.py</code>.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val">Sets <code>department</code>, <code>confidence</code>, <code>sub_department</code></span></div>
+      </div>
+      <div class="node-card">
+        <h4>retrieval_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>formal_query</code>, <code>department</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Checks Redis cache. On miss, searches FAISS + Gov Portal + Policy KB.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val"><code>retrieved_context</code>, <code>retrieval_scores</code>, <code>cache_hit</code></span></div>
+      </div>
+      <div class="node-card">
+        <h4>reviewer_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>formal_query</code>, <code>retrieved_context</code>, <code>department</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Gemini Pro acts as judge. Checks for hallucinations and legal tone.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val"><code>review_passed</code>, <code>grounding_score</code>, <code>hallucination_flags</code></span></div>
+      </div>
+      <div class="node-card">
+        <h4>reflection_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>review_feedback</code>, <code>hallucination_flags</code>, <code>retry_count</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Analyzes failure. Rewrites <code>sanitized_query</code> with improvement instructions.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val">Increments <code>retry_count</code>, resets <code>approval_status</code></span></div>
+      </div>
+      <div class="node-card">
+        <h4>tracker_node</h4>
+        <div class="node-row"><span class="label">Input</span><span class="val"><code>formal_query</code>, <code>department</code>, <code>approval_status</code></span></div>
+        <div class="node-row"><span class="label">Logic</span><span class="val">Generates <code>RTI-YYYYMM-XXXXXX</code> ID. Async MongoDB insert via <code>motor</code>.</span></div>
+        <div class="node-row"><span class="label">Output</span><span class="val"><code>tracking_id</code>, <code>final_response</code></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. RAG -->
+  <section id="s5">
+    <div class="section-header">
+      <div class="section-num">05</div>
+      <h2>RAG Pipeline Flow</h2>
+    </div>
+    <p>The RAG pipeline ensures the system is grounded in actual RTI law and government structure.</p>
+
+    <h3>RAG Lifecycle</h3>
+    <ol class="steps">
+      <li><strong>Ingestion</strong> — <code>rag/ingestion/pipeline.py</code> loads PDFs/JSONs.</li>
+      <li><strong>Chunking</strong> — <code>RecursiveCharacterTextSplitter</code> creates 512-token chunks.</li>
+      <li><strong>Embedding</strong> — <code>GeminiEmbedder</code> generates 768-dim vectors.</li>
+      <li><strong>Indexing</strong> — <code>FAISS</code> stores vectors locally in <code>data/vector_store</code>.</li>
+      <li><strong>Retrieval</strong> — <code>RetrievalNode</code> calls <code>retriever.py</code>.</li>
+      <li><strong>Caching</strong> — Redis stores <code>SHA256(query+dept)</code> → <code>Context</code> mapping.</li>
+    </ol>
+
+    <div class="diagram-wrap">
+      <div class="diagram-label">RAG Sequence — Cache-First Retrieval</div>
+      <div class="mermaid">
+sequenceDiagram
+    participant RN as RetrievalNode
+    participant RC as Redis Cache
+    participant RS as FAISS Store
+    participant GP as Gov Portal Tool
+
+    RN->>RC: GET cache_key
+    alt Cache Hit
+        RC-->>RN: Return context
+    else Cache Miss
+        RN->>RS: similarity_search(embedding)
+        RS-->>RN: Return top-k docs
+        RN->>GP: search_portal(query)
+        GP-->>RN: Return additional context
+        RN->>RC: SET cache_key (TTL 1h)
+    end
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Memory -->
+  <section id="s6">
+    <div class="section-header">
+      <div class="section-num">06</div>
+      <h2>Memory Architecture</h2>
+    </div>
+    <p>The system uses a tiered memory model to handle the long-running RTI lifecycle.</p>
+    <div class="memory-tier">
+      <div class="memory-card">
+        <div class="tier-label">Tier 1</div>
+        <div class="tier-name">Short-Term</div>
+        <div class="tier-desc">Ephemeral <code>RTIAgentState</code> TypedDict holding in-flight data.</div>
+      </div>
+      <div class="memory-card">
+        <div class="tier-label">Tier 2</div>
+        <div class="tier-name">State Persistence</div>
+        <div class="tier-desc">SQLite Checkpointer saves state at every node transition. Allows resume after crash or HITL pause.</div>
+      </div>
+      <div class="memory-card">
+        <div class="tier-label">Tier 3</div>
+        <div class="tier-name">Semantic</div>
+        <div class="tier-desc">FAISS index providing long-term contextual facts.</div>
+      </div>
+      <div class="memory-card">
+        <div class="tier-label">Tier 4</div>
+        <div class="tier-name">Episodic</div>
+        <div class="tier-desc">MongoDB <code>rti_requests</code> storing completed applications.</div>
+      </div>
+      <div class="memory-card">
+        <div class="tier-label">Tier 5</div>
+        <div class="tier-name">Thread</div>
+        <div class="tier-desc">MongoDB <code>conversation_threads</code> linking multiple requests to one user.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. HITL -->
+  <section id="s7">
+    <div class="section-header">
+      <div class="section-num">07</div>
+      <h2>HITL (Human-in-the-Loop) Flow</h2>
+    </div>
+    <p>This is the most critical flow for governance.</p>
+    <ol class="steps">
+      <li><strong>Interrupt</strong> — Graph reaches <code>approval_node</code>. Because <code>interrupt_before</code> is set, execution <strong>halts</strong>.</li>
+      <li><strong>Notification</strong> — <code>approval_node</code> saves a "pending" status to Mongo and sends an email.</li>
+      <li><strong>Wait</strong> — The graph process exits. State is safely persisted in SQLite.</li>
+      <li><strong>Action</strong> — User calls <code>POST /api/v1/approve/{request_id}</code>.</li>
+      <li><strong>Resume</strong> — FastAPI calls <code>graph.ainvoke(resume_state, config)</code>. LangGraph finds the checkpoint, updates state with <code>approval_status="approved"</code>, and execution resumes exactly where it left off.</li>
+    </ol>
+  </section>
+
+  <!-- 8. Observability -->
+  <section id="s8">
+    <div class="section-header">
+      <div class="section-num">08</div>
+      <h2>Observability &amp; Security</h2>
+    </div>
+
+    <h3>Observability</h3>
+    <ol class="steps">
+      <li><strong>Prometheus</strong> — Emits metrics at each node end (<code>rti_agent_duration_seconds</code>).</li>
+      <li><strong>LangSmith</strong> — Captures full graph trace, including inputs/outputs of every LLM call.</li>
+      <li><strong>JSON Logs</strong> — Every log includes <code>request_id</code> and <code>agent</code> name for correlation in ELK/Grafana.</li>
+    </ol>
+
+    <h3>Security Pipeline</h3>
+    <div class="diagram-wrap">
+      <div class="diagram-label">Security — Input Hardening Chain</div>
+      <div class="mermaid">
+graph LR
+    Input[User Query] --> San[Sanitizer: Regex Guards]
+    San --> PII[PII Masker: Presidio / Regex]
+    PII --> Guard[Prompt Guard: Injection Detection]
+    Guard --> Safe[Safe State]
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Database -->
+  <section id="s9">
+    <div class="section-header">
+      <div class="section-num">09</div>
+      <h2>Database Architecture</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Collection</th><th>Purpose</th><th>Key Indexes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>rti_requests</td><td>Final RTI applications</td><td><code>tracking_id</code>, <code>request_id</code>, <code>created_at</code></td></tr>
+          <tr><td>conversation_threads</td><td>Multi-turn history</td><td><code>thread_id</code>, <code>updated_at</code></td></tr>
+          <tr><td>audit_log</td><td>Tamper-proof trail</td><td><code>timestamp</code>, <code>request_id</code></td></tr>
+          <tr><td>feedback</td><td>User ratings</td><td><code>tracking_id</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 10. Trace -->
+  <section id="s10">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Complete Execution Trace</h2>
+    </div>
+    <p>Query: <em>"Provide road construction budget details for Pune district 2024"</em></p>
+    <div class="trace">
+      <div class="trace-header">
+        <span>STEP</span><span>AGENT</span><span>DETAIL</span><span>STATUS</span>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">01</div>
+        <div class="trace-agent">API Gateway</div>
+        <div class="trace-detail">POST /submit received. <code>request_id=123</code></div>
+        <div class="trace-status status-ok">✓ 202</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">02</div>
+        <div class="trace-agent">Router</div>
+        <div class="trace-detail">Intent = "new_request"</div>
+        <div class="trace-status status-ok">✓ OK</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">03</div>
+        <div class="trace-agent">Formatter</div>
+        <div class="trace-detail">Drafts formal RTI application for Pune district road construction budget FY 2024-25</div>
+        <div class="trace-status status-ok">✓ OK</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">04</div>
+        <div class="trace-agent">Classifier</div>
+        <div class="trace-detail">Dept = "Ministry of Road Transport and Highways", Confidence = "high"</div>
+        <div class="trace-status status-ok">✓ OK</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">05</div>
+        <div class="trace-agent">Retrieval</div>
+        <div class="trace-detail">FAISS finds 3 chunks on PWD budget rules. Redis Cache = Miss.</div>
+        <div class="trace-status status-warn">⚡ MISS</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">06</div>
+        <div class="trace-agent">Reviewer</div>
+        <div class="trace-detail">Score = 0.95. Passed. No hallucinations detected.</div>
+        <div class="trace-status status-ok">✓ 0.95</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">07</div>
+        <div class="trace-agent">Approval Node</div>
+        <div class="trace-detail">Graph pauses. API returns <code>status="awaiting_approval"</code></div>
+        <div class="trace-status status-pause">⏸ PAUSE</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">08</div>
+        <div class="trace-agent">HITL</div>
+        <div class="trace-detail">User calls <code>POST /approve/123</code></div>
+        <div class="trace-status status-ok">✓ RESUME</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">09</div>
+        <div class="trace-agent">Tracker</div>
+        <div class="trace-detail">Generates <code>RTI-202605-A1B2C3</code>. Saved to MongoDB. Email sent.</div>
+        <div class="trace-status status-ok">✓ DONE</div>
+      </div>
+      <div class="trace-item">
+        <div class="trace-step">10</div>
+        <div class="trace-agent">Stream</div>
+        <div class="trace-detail">Emits <code>event: complete</code></div>
+        <div class="trace-status status-ok">✓ 200</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Review -->
+  <section id="s11">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Final Engineering Review</h2>
+    </div>
+
+    <div class="two-col">
+      <div class="review-card strengths">
+        <h4>▲ Architecture Strengths</h4>
+        <ul>
+          <li><span class="bullet">●</span><div><strong>Resilience</strong> — Checkpointing ensures no request is lost mid-flight.</div></li>
+          <li><span class="bullet">●</span><div><strong>Governance</strong> — HITL is baked into the graph topology, not an afterthought.</div></li>
+          <li><span class="bullet">●</span><div><strong>Hybrid RAG</strong> — Combining local FAISS with live Tool-Calling ensures up-to-date context.</div></li>
+        </ul>
+      </div>
+      <div class="review-card risks">
+        <h4>⚠ Bottlenecks &amp; Risks</h4>
+        <ul>
+          <li><span class="bullet">●</span><div><strong>Async Risk</strong> — Full async requires careful connection pool management under high load.</div></li>
+          <li><span class="bullet">●</span><div><strong>Graph Complexity</strong> — As more agents are added, a single TypedDict state can become bloated.</div></li>
+          <li><span class="bullet">●</span><div><strong>Token Cost</strong> — Reflection loops can double token usage for failing queries.</div></li>
+        </ul>
+      </div>
+    </div>
+
+
+  </section>
+
+</main>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    background: '#111827',
+    primaryColor: '#1e3a5f',
+    primaryTextColor: '#e2e8f0',
+    primaryBorderColor: '#1f2d45',
+    lineColor: '#3b82f6',
+    secondaryColor: '#1a2235',
+    tertiaryColor: '#0b0f1a',
+    edgeLabelBackground: '#111827',
+    clusterBkg: '#0f1a2e',
+    clusterBorder: '#1f2d45',
+    titleColor: '#e2e8f0',
+    nodeTextColor: '#e2e8f0',
+    actorBkg: '#1e3a5f',
+    actorBorder: '#3b82f6',
+    actorTextColor: '#e2e8f0',
+    actorLineColor: '#3b82f6',
+    signalColor: '#94a3b8',
+    signalTextColor: '#94a3b8',
+    labelBoxBkgColor: '#1a2235',
+    labelBoxBorderColor: '#1f2d45',
+    labelTextColor: '#e2e8f0',
+    loopTextColor: '#e2e8f0',
+    noteBorderColor: '#3b82f6',
+    noteBkgColor: '#1e3a5f',
+    noteTextColor: '#e2e8f0',
+    activationBorderColor: '#06b6d4',
+    activationBkgColor: '#0e3344',
+    sequenceNumberColor: '#0b0f1a',
+  },
+  flowchart: { curve: 'basis', padding: 20 },
+  sequence: { showSequenceNumbers: false, actorMargin: 80, messageMargin: 30 }
+});
+</script>
+</body>
+</html>

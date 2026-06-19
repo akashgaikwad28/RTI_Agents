@@ -1,0 +1,19 @@
+[
+  {
+    "query": "Pune road budget 2024",
+    "expected_documents": [
+      "pwd_budget_2024.pdf"
+    ],
+    "expected_department": "Road & Transport",
+    "expected_language": "en"
+  },
+  {
+    "query": "Right to information appeal timeline",
+    "expected_documents": [
+      "rti_act_2005.pdf",
+      "rti_rules_2012.pdf"
+    ],
+    "expected_department": "General",
+    "expected_language": "en"
+  }
+]

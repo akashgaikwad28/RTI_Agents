@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rti-agent-config
+data:
+  APP_ENV: "production"
+  LOG_FORMAT: "json"
+  FAISS_INDEX_PATH: "data/vector_store"
+  FAISS_TOP_K: "5"
+  MAX_SCRAPE_DEPTH: "1"
+  EMBEDDING_BATCH_SIZE: "32"
+  RAG_CACHE_TTL: "3600"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rti-agent-metrics
+  labels:
+    app: rti-agent-api
+spec:
+  selector:
+    app: rti-agent-api
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: 8000
+

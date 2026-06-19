@@ -1,0 +1,6 @@
+{
+  "version": "3.0.0",
+  "categories": ["government", "retrieval", "utility", "analytics"],
+  "permissions": ["read:public", "read:rag", "network:gov", "privacy:redact"],
+  "startup_autoregister": true
+}

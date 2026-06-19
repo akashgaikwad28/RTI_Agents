@@ -1,0 +1,14 @@
+[
+  {
+    "query": "Pune road budget 2024",
+    "expected_documents": ["pwd_budget_2024.pdf"],
+    "expected_departments": ["Road & Transport"],
+    "expected_citations": ["pwd_budget_2024.pdf: Pune Road Budget Allocation"]
+  },
+  {
+    "query": "Right to information appeal timeline",
+    "expected_documents": ["rti_act_2005.pdf", "rti_rules_2012.pdf"],
+    "expected_departments": ["General Administration"],
+    "expected_citations": ["rti_act_2005.pdf: Section 19", "rti_rules_2012.pdf: Rule 4"]
+  }
+]

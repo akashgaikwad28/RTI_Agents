@@ -41,6 +41,15 @@ dependencies = [
   "fastapi",
   "uvicorn",
   "aiohttp",
+  "beautifulsoup4",
+  "trafilatura",
+  "lxml",
+
+  # RAG / Documents
+  "faiss-cpu",
+  "pymupdf",
+  "cachetools",
+  "tenacity",
 
   # Testing & CI/CD utilities
   "pytest",

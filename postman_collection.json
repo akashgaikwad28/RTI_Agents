@@ -1,0 +1,191 @@
+{
+  "info": {
+    "name": "RTI-Agent API Testing (Postman)",
+    "_postman_id": "00000000-0000-0000-0000-000000000000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            }
+          }
+        },
+        {
+          "name": "GET /ready",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ready"]
+            }
+          }
+        },
+        {
+          "name": "GET /live",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "live"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RTI Workflow",
+      "item": [
+        {
+          "name": "POST /submit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Akash Gaikwad\",\n  \"email\": \"akash@example.com\",\n  \"address\": \"Pune, Maharashtra\",\n  \"query_text\": \"I want details about road construction budget in Pune for 2024-25\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "submit"]
+            }
+          }
+        },
+        {
+          "name": "GET /stream/{request_id} (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "text/event-stream" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stream/{{request_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stream", "{{request_id}}"]
+            }
+          }
+        },
+        {
+          "name": "POST /approve/{request_id}",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"approved\",\n  \"approved_by\": \"test_user\",\n  \"edited_query\": \"Optional edited RTI query text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/approve/{{request_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "approve", "{{request_id}}"]
+            }
+          }
+        },
+        {
+          "name": "GET /status/{tracking_id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/status/{{tracking_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "status", "{{tracking_id}}"]
+            }
+          }
+        },
+        {
+          "name": "POST /feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_id\": \"{{tracking_id}}\",\n  \"rating\": 5,\n  \"comment\": \"Very helpful.\",\n  \"was_helpful\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "feedback"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RAG (smoke)",
+      "item": [
+        {
+          "name": "GET /rag/status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rag/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rag", "status"]
+            }
+          }
+        },
+        {
+          "name": "POST /rag/query-test",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"road construction budget Pune 2024-25\",\n  \"department\": \"\",\n  \"language\": \"en\",\n  \"k\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rag/query-test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rag", "query-test"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "apiKey", "value": "change-me-in-production" },
+    { "key": "request_id", "value": "" },
+    { "key": "tracking_id", "value": "" }
+  ]
+}

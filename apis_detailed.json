@@ -1,0 +1,603 @@
+{
+  "meta": {
+    "project": "RTI-Agent",
+    "api_base_path": "/api/v1",
+    "version_hint": "Backend code mounts routers under /api/v1 (FastAPI app in api/main.py).",
+    "auth": {
+      "type": "API Key header",
+      "header": "X-API-Key",
+      "note": "Exact value comes from .env / environment variable RTI_API_KEY (see config/settings.py)."
+    },
+    "content_type": "application/json",
+    "environment_variables_for_postman": {
+      "baseUrl": "http://localhost:8000",
+      "apiKey": "{{YOUR_X_API_KEY}}"
+    }
+  },
+  "testing_notes": {
+    "recommended_start_order": [
+      "GET /health",
+      "GET /ready",
+      "GET /stream/{request_id} only after POST /submit",
+      "POST /submit",
+      "POST /approve/{request_id}",
+      "GET /status/{tracking_id}"
+    ],
+    "threading_model": {
+      "POST /submit": "Returns request_id + stream_url and status awaiting_approval.",
+      "GET /stream/{request_id}": "SSE stream for LangGraph execution events; approval pause may occur.",
+      "POST /approve/{request_id}": "Resumes graph with approval decision; returns tracking_id + final status.",
+      "GET /status/{tracking_id}": "Fetch final status/details from Mongo."
+    }
+  },
+  "endpoints": [
+    {
+      "group": "Health",
+      "methods": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "full_url_template": "{{baseUrl}}/api/v1/health",
+          "response_model": "HealthResponse",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_response": {
+            "status": "ok",
+            "version": "2.0.0",
+            "environment": "development|production",
+            "services": {
+              "mongodb": "healthy|unavailable",
+              "redis": "healthy|unavailable",
+              "faiss": "loaded|not_loaded",
+              "langgraph": "compiled|not_compiled"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/ready",
+          "full_url_template": "{{baseUrl}}/api/v1/ready",
+          "description": "Readiness probe",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/live",
+          "full_url_template": "{{baseUrl}}/api/v1/live",
+          "description": "Liveness probe",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        }
+      ]
+    },
+    {
+      "group": "RTI Workflow",
+      "methods": [
+        {
+          "method": "POST",
+          "path": "/submit",
+          "full_url_template": "{{baseUrl}}/api/v1/submit",
+          "status_code": 202,
+          "summary": "Starts LangGraph workflow asynchronously; pauses at human approval (approval_node).",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "request_body_schema": {
+            "name": "string (2..100)",
+            "email": "string (valid email)",
+            "address": "string (5..500)",
+            "query_text": "string (10..2000)",
+            "phone_number": "optional string",
+            "state": "optional string",
+            "district": "optional string",
+            "pincode": "optional string",
+            "language": "optional one of [en, hi, mr, ta, te, bn, gu, kn, ml, pa]",
+            "thread_id": "optional string"
+          },
+          "sample_request_body": {
+            "name": "Akash Gaikwad",
+            "email": "akash@example.com",
+            "address": "Pune, Maharashtra",
+            "query_text": "I want details about road construction budget in Pune for 2024-25",
+            "language": "en"
+          },
+          "sample_response": {
+            "request_id": "uuid-string",
+            "thread_id": "uuid-string",
+            "status": "awaiting_approval",
+            "message": "Your RTI is being processed. You will be notified for approval.",
+            "stream_url": "/api/v1/stream/{request_id}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/stream/{request_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/stream/{{request_id}}",
+          "summary": "SSE endpoint streaming LangGraph progress and completion.",
+          "request_headers": {
+            "Accept": "text/event-stream",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "note": "Use this after POST /submit. Approval_required event may appear."
+        },
+        {
+          "method": "POST",
+          "path": "/approve/{request_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/approve/{{request_id}}",
+          "summary": "Approves or rejects the draft and resumes the workflow from approval_node interrupt.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "request_body_schema": {
+            "decision": "approved|rejected",
+            "approved_by": "optional string (default admin)",
+            "edited_query": "optional string"
+          },
+          "sample_request_body": {
+            "decision": "approved",
+            "approved_by": "test_user",
+            "edited_query": "Optional edited RTI query text"
+          },
+          "sample_response": {
+            "request_id": "uuid-string",
+            "tracking_id": "RTI-YYYYMM-XXXXXX|uuid-or-string",
+            "status": "completed|rejected|unknown",
+            "message": "Workflow completion message"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/status/{tracking_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/status/{{tracking_id}}",
+          "summary": "Retrieve current RTI status from Mongo by tracking_id.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_response": {
+            "tracking_id": "tracking-id",
+            "status": "pending|processing|completed|rejected|...",
+            "department": "string",
+            "created_at": "ISO string",
+            "updated_at": "ISO string",
+            "approval_status": "approved|rejected|pending",
+            "formal_query": "string",
+            "workflow_path": [
+              "router_node",
+              "formatter_node",
+              "classifier_node"
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/thread/{thread_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/thread/{{thread_id}}",
+          "summary": "Retrieve full conversation thread history.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/feedback",
+          "full_url_template": "{{baseUrl}}/api/v1/feedback",
+          "summary": "Submit feedback for completed RTI.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "request_body_schema": {
+            "tracking_id": "string",
+            "rating": "integer 1..5",
+            "comment": "optional string (max_length 1000)",
+            "was_helpful": "boolean"
+          },
+          "sample_request_body": {
+            "tracking_id": "RTI-202605-ABC123",
+            "rating": 5,
+            "comment": "Very helpful and well formatted.",
+            "was_helpful": true
+          },
+          "sample_response": {
+            "status": "ok",
+            "message": "Feedback recorded. Thank you!"
+          }
+        }
+      ]
+    },
+    {
+      "group": "RAG",
+      "methods": [
+        {
+          "method": "POST",
+          "path": "/rag/ingest",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/ingest",
+          "summary": "Ingest local documents for RAG vector store.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "paths": [
+              "data/public_rti_knowledge.json"
+            ],
+            "department": "",
+            "rebuild": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/rag/scrape",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/scrape",
+          "summary": "Scrape targets and ingest into vector store.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "targets": [
+              "https://example.gov.in/some-rtI-page"
+            ],
+            "max_depth": 1,
+            "rebuild": false
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/rag/status",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/status",
+          "summary": "Return FAISS vector store readiness and stats.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/rag/stats",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/stats",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/rag/query-test",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/query-test",
+          "summary": "Single-language RAG retrieval test.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "query": "road construction budget Pune 2024-25",
+            "department": "",
+            "language": "en",
+            "k": 5
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/rag/multilingual-query",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/multilingual-query",
+          "summary": "Multilingual retrieval test using multilingual retriever.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "query": "पुणे रोड निर्माण बजट 2024-25",
+            "department": "",
+            "language": "hi",
+            "k": 5
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/rag/document-history/{document_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/document-history/{{document_id}}",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/rag/document-version/{document_id}/{version}",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/document-version/{{document_id}}/{{version}}",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/rag/corpus-health",
+          "full_url_template": "{{baseUrl}}/api/v1/rag/corpus-health",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        }
+      ]
+    },
+    {
+      "group": "Multilingual",
+      "methods": [
+        {
+          "method": "POST",
+          "path": "/multilingual/detect",
+          "full_url_template": "{{baseUrl}}/api/v1/multilingual/detect",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "text": "यह एक परीक्षण वाक्य है"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/multilingual/translate",
+          "full_url_template": "{{baseUrl}}/api/v1/multilingual/translate",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "text": "यह एक परीक्षण वाक्य है",
+            "target_language": "en",
+            "source_language": "hi"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/multilingual/retrieve",
+          "full_url_template": "{{baseUrl}}/api/v1/multilingual/retrieve",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "query": "पुणे जिले के सड़क निर्माण बजट 2024-25",
+            "department": "",
+            "response_language": "hi",
+            "k": 5
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/multilingual/ocr",
+          "full_url_template": "{{baseUrl}}/api/v1/multilingual/ocr",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "path": "data/some_scanned_doc.pdf",
+            "languages": [
+              "eng",
+              "hin",
+              "mar"
+            ]
+          },
+          "note": "Server enforces OCR path must be inside workspace or C:/tmp."
+        },
+        {
+          "method": "GET",
+          "path": "/multilingual/stats",
+          "full_url_template": "{{baseUrl}}/api/v1/multilingual/stats?language=en",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        }
+      ]
+    },
+    {
+      "group": "Tools (enterprise tool calling)",
+      "methods": [
+        {
+          "method": "GET",
+          "path": "/tools",
+          "full_url_template": "{{baseUrl}}/api/v1/tools?permissions=...&capability=...&department=...",
+          "summary": "List available tools with optional filters.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/tools/status",
+          "full_url_template": "{{baseUrl}}/api/v1/tools/status",
+          "summary": "Return tool health for a set of default permissions.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/tools/query",
+          "full_url_template": "{{baseUrl}}/api/v1/tools/query",
+          "summary": "Plan + execute tool calls and return debate/consensus.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "query": "Find latest circular for RTI processing timeline",
+            "department": "",
+            "language": "en",
+            "k": 5,
+            "max_tools": 5,
+            "permissions": [
+              "read:public",
+              "read:rag",
+              "network:gov",
+              "privacy:redact"
+            ]
+          },
+          "note": "Exact schema fields are defined in tools.base.tool_schemas. This sample covers likely fields but you may need to align with actual ToolQueryRequest."
+        },
+        {
+          "method": "GET",
+          "path": "/tools/traces/{trace_id}",
+          "full_url_template": "{{baseUrl}}/api/v1/tools/traces/{{trace_id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/tools/metrics",
+          "full_url_template": "{{baseUrl}}/api/v1/tools/metrics"
+        },
+        {
+          "method": "POST",
+          "path": "/tools/replay",
+          "full_url_template": "{{baseUrl}}/api/v1/tools/replay",
+          "summary": "Replay tool execution from serialized tool_calls list.",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "request_id": "optional-request-id",
+            "department": "",
+            "permissions": [
+              "read:public",
+              "read:rag",
+              "network:gov",
+              "privacy:redact"
+            ],
+            "tool_calls": [
+              {
+                "name": "example_tool_name",
+                "arguments": {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "group": "Governance",
+      "methods": [
+        {
+          "method": "GET",
+          "path": "/governance/tools",
+          "full_url_template": "{{baseUrl}}/api/v1/governance/tools",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/governance/tools/{tool_name}/execute",
+          "full_url_template": "{{baseUrl}}/api/v1/governance/tools/{{tool_name}}/execute",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "example_input": "value"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/governance/events",
+          "full_url_template": "{{baseUrl}}/api/v1/governance/events?request_id=&limit=100",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/governance/dashboard",
+          "full_url_template": "{{baseUrl}}/api/v1/governance/dashboard",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/governance/evaluate",
+          "full_url_template": "{{baseUrl}}/api/v1/governance/evaluate",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "status": "example_state_payload"
+          }
+        }
+      ]
+    },
+    {
+      "group": "Evaluation",
+      "methods": [
+        {
+          "method": "POST",
+          "path": "/eval/run",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/run",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "dataset_name": "default",
+            "version": "1.0.0",
+            "target_model": "groq-llama3"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/eval/reports",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/reports",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/eval/metrics",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/metrics",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/eval/hallucination-check",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/hallucination-check",
+          "request_headers": {
+            "Content-Type": "application/json",
+            "X-API-Key": "{{apiKey}}"
+          },
+          "sample_request_body": {
+            "statement": "The statement to check",
+            "contexts": [
+              "context snippet 1",
+              "context snippet 2"
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/eval/replay",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/replay",
+          "note": "Router expects parameter thread_id (as declared). Postman should call with query param unless schema is clarified in code further.",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/eval/benchmarks",
+          "full_url_template": "{{baseUrl}}/api/v1/eval/benchmarks",
+          "request_headers": {
+            "X-API-Key": "{{apiKey}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "targets": [
+    {
+      "name": "data.gov.in",
+      "base_url": "https://data.gov.in",
+      "department": "General",
+      "allowed_domains": ["data.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["dataset", "faq", "scheme", "report"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.4,
+      "enabled": true
+    },
+    {
+      "name": "maharashtra.gov.in",
+      "base_url": "https://www.maharashtra.gov.in",
+      "department": "State Government of Maharashtra",
+      "allowed_domains": ["maharashtra.gov.in", "www.maharashtra.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["circular", "scheme", "announcement", "report"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.4,
+      "enabled": true
+    },
+    {
+      "name": "pune.gov.in",
+      "base_url": "https://pune.gov.in",
+      "department": "Municipal Corporation",
+      "allowed_domains": ["pune.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["notice", "tender", "scheme", "faq"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.4,
+      "enabled": true
+    },
+    {
+      "name": "pmkisan.gov.in",
+      "base_url": "https://pmkisan.gov.in",
+      "department": "Ministry of Agriculture & Farmers Welfare",
+      "allowed_domains": ["pmkisan.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["scheme", "faq", "beneficiary"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.35,
+      "enabled": true
+    },
+    {
+      "name": "mohfw.gov.in",
+      "base_url": "https://mohfw.gov.in",
+      "department": "Ministry of Health and Family Welfare",
+      "allowed_domains": ["mohfw.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["circular", "report", "faq", "scheme"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.35,
+      "enabled": true
+    },
+    {
+      "name": "education.gov.in",
+      "base_url": "https://www.education.gov.in",
+      "department": "Ministry of Education",
+      "allowed_domains": ["education.gov.in", "www.education.gov.in"],
+      "start_paths": ["/"],
+      "document_types": ["policy", "scheme", "report", "circular"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.35,
+      "enabled": true
+    },
+    {
+      "name": "morth.nic.in",
+      "base_url": "https://morth.nic.in",
+      "department": "Ministry of Road Transport and Highways",
+      "allowed_domains": ["morth.nic.in"],
+      "start_paths": ["/"],
+      "document_types": ["circular", "report", "tender", "scheme"],
+      "max_depth": 1,
+      "rate_limit_per_second": 0.35,
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+export default function ToolMonitoringPage() {
+  return <Surface title="Tool Monitoring" items={["Registry health", "Permission denials", "Timeouts", "Live government fetches"]} />;
+}
+function Surface({ title, items }: { title: string; items: string[] }) { return <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-5"><h1 className="font-semibold mb-4">{title}</h1>{items.map((i) => <p className="text-sm py-2 border-b border-[hsl(var(--border))]" key={i}>{i}</p>)}</section>; }
+

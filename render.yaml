@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rti-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PORT
+        value: "8000"

@@ -1,0 +1,43 @@
+export const config = {
+  api: {
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+    timeout: 30000,
+    streamBaseUrl: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1`,
+  },
+  app: {
+    name: "RTI-Agent",
+    description: "AI-Powered RTI Automation System for India",
+    version: "2.0.0",
+  },
+  departments: [
+    { id: "agriculture", name: "Agriculture", shortName: "AGR", icon: "Wheat", color: "#22c55e" },
+    { id: "road-transport", name: "Road & Transport", shortName: "R&T", icon: "Route", color: "#3b82f6" },
+    { id: "education", name: "Education", shortName: "EDU", icon: "GraduationCap", color: "#a855f7" },
+    { id: "health", name: "Health", shortName: "HLT", icon: "Heart", color: "#ef4444" },
+    { id: "municipal", name: "Municipal Corporation", shortName: "MUN", icon: "Building2", color: "#f59e0b" },
+  ],
+  languages: [
+    { code: "en", name: "English", nativeName: "English" },
+    { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
+    { code: "mr", name: "Marathi", nativeName: "मराठी" },
+  ],
+  workflowNodes: [
+    { id: "start", label: "START", description: "Request received", icon: "GitBranch" },
+    { id: "router_node", label: "Router", description: "Intent Detection", icon: "GitBranch" },
+    { id: "planner_node", label: "Planner", description: "Execution Plan", icon: "GitBranch" },
+    { id: "formatter_node", label: "Formatter", description: "Query Drafting", icon: "FileText" },
+    { id: "classifier_node", label: "Classifier", description: "Department Routing", icon: "Tags" },
+    { id: "tool_selection_node", label: "Tools", description: "Tool Selection", icon: "Search" },
+    { id: "retrieval_node", label: "Retrieval", description: "Knowledge Search", icon: "Search" },
+    { id: "debate_node", label: "Debate", description: "Multi-Agent Debate", icon: "GitBranch" },
+    { id: "critic_node", label: "Critic", description: "Weakness Detection", icon: "ShieldCheck" },
+    { id: "verifier_node", label: "Verifier", description: "Fact Verification", icon: "ShieldCheck" },
+    { id: "reviewer_node", label: "Reviewer", description: "Quality Check", icon: "ShieldCheck" },
+    { id: "approval_node", label: "Approval", description: "Human Review", icon: "UserCheck" },
+    { id: "reflection_node", label: "Reflection", description: "Self-Correction", icon: "RefreshCw" },
+    { id: "consensus_node", label: "Consensus", description: "Trusted Merge", icon: "CheckCircle2" },
+    { id: "memory_learning_node", label: "Memory", description: "Adaptive Learning", icon: "RefreshCw" },
+    { id: "tracker_node", label: "Tracker", description: "Finalization", icon: "CheckCircle2" },
+    { id: "end", label: "END", description: "Workflow Complete", icon: "CheckCircle2" },
+  ],
+} as const;

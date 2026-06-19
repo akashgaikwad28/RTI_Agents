@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* ── CSS Custom Properties ─────────────────────────────────── */
+:root {
+  --bg: 220 20% 97%;
+  --surface: 0 0% 100%;
+  --surface2: 220 14% 96%;
+  --border: 220 13% 91%;
+  --ring: 221 83% 53%;
+  --text: 222 47% 11%;
+  --text-muted: 215 16% 47%;
+  --accent: 221 83% 53%;
+  --accent2: 192 91% 36%;
+  --saffron: 28 87% 62%;
+  --emerald: 152 69% 31%;
+  --destructive: 0 84% 60%;
+  --radius: 0.625rem;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.dark {
+  --bg: 222 47% 6%;
+  --surface: 223 47% 9%;
+  --surface2: 224 38% 13%;
+  --border: 224 28% 18%;
+  --ring: 217 91% 60%;
+  --text: 210 40% 96%;
+  --text-muted: 215 16% 57%;
+  --accent: 217 91% 60%;
+}
+
+/* ── Global Styles ─────────────────────────────────────────── */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background: hsl(var(--bg));
+    color: hsl(var(--text));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.25);
+    color: hsl(var(--text));
+  }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-muted) / 0.4);
+}
+
+/* ── Grid Background Pattern ───────────────────────────────── */
+.grid-pattern {
+  background-image:
+    linear-gradient(hsl(var(--accent) / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--accent) / 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ── Glass effect ──────────────────────────────────────────── */
+.glass {
+  background: hsl(var(--surface) / 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* ── Glow ──────────────────────────────────────────────────── */
+.glow-accent {
+  box-shadow: 0 0 30px hsl(var(--accent) / 0.15),
+              0 0 60px hsl(var(--accent) / 0.05);
+}
+
+/* ── Animate pulse for nodes ───────────────────────────────── */
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.4); }
+  50% { box-shadow: 0 0 0 12px hsl(var(--accent) / 0); }
+}
+.animate-node-pulse {
+  animation: node-pulse 2s ease-in-out infinite;
+}
+
+/* ── Shimmer skeleton ──────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--surface2)) 25%,
+    hsl(var(--border)) 50%,
+    hsl(var(--surface2)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+}

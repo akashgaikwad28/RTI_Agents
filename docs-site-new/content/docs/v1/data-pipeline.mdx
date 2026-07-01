@@ -1,0 +1,26 @@
+---
+title: Data & Ingestion Pipeline
+description: Scraping, Embedding, and Retrieval Pipelines
+---
+
+# Government Data Pipeline
+
+To accurately draft Right to Information (RTI) queries, the system must first ingest and index vast amounts of highly unstructured government data.
+
+## 1. Scraping & Ingestion
+The `gov_scraper.py` handles asynchronous web scraping with rate-limiting, depth limits, and `robots.txt` compliance to fetch government PDFs and HTML sites. Low-quality PDF pages are routed via `OCRRouter` using PyTesseract.
+
+## 2. Chunking Strategy
+We use a dynamic `SmartChunker`:
+- **HTML**: Routed to `MarkdownTextSplitter` to preserve structure.
+- **PDF/Text**: Routed to `RecursiveCharacterTextSplitter`.
+
+## 3. Embeddings & Vector Store
+- **Embedding Router**: Dynamically loads `GeminiEmbedder` with local fallbacks (`sentence-transformers`).
+- **Vector Database**: FAISS is the primary store, with MongoDB Cloud supported.
+
+## 4. Hybrid Retrieval & Reranking
+When context is requested:
+1. **Semantic Cache**: Checks for recent exact matches.
+2. **Hybrid Search**: Fetches 4x candidates.
+3. **Local Reranking**: Boosts via Department Match, Recency, and Keyword Overlap.

@@ -1,0 +1,25 @@
+---
+title: Architecture
+description: High-level System Architecture
+---
+
+# System Architecture
+
+The core workflow engine is built using **LangGraph**, enabling scalable orchestration of modular agents. The frontend is built with **Next.js**, and the backend is a highly asynchronous **FastAPI** service.
+
+## Core Flow
+
+```mermaid
+graph TD
+    User([User Request]) --> Formatter(Formatter Agent)
+    Formatter --> Translator(Translator Client)
+    Translator --> Classifier(Classifier Agent)
+    Classifier --> InfoFetcher(Info Fetcher Agent)
+    InfoFetcher -- Check Public Info --> VectorDB[(Vector Database)]
+    InfoFetcher -- Scrape --> GovPortals[Government Portals]
+    InfoFetcher -- Info Found --> User
+    InfoFetcher -- Not Found --> DB[(MongoDB)]
+    DB --> Tracker(Tracker Agent)
+    Tracker --> Email[Email / Mock Submission]
+    Email --> Govt([Govt Department])
+```

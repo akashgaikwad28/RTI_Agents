@@ -1,0 +1,19 @@
+---
+title: Deployment Topology
+description: Hosting and Infrastructure setup
+---
+
+# Deployment Topology
+
+The platform leverages Docker for consistent environments and managed platforms for scalability.
+
+## Hosting Platforms
+1. **Frontend (Next.js)**: Vercel (recommended).
+2. **Backend (FastAPI)**: Render or AWS ECS.
+3. **Databases**: MongoDB Atlas, Upstash/Redis.
+
+## Docker Setup
+```bash
+cp .env.example .env
+docker-compose up --build -d
+```

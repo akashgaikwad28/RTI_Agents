@@ -1,0 +1,26 @@
+---
+title: Observability & Tracing
+description: Monitoring, Tracing, and Telemetry infrastructure of RTI-Agent
+---
+
+# Observability & Tracing
+
+The RTI-Agent platform uses an enterprise-grade observability stack to ensure every LangGraph execution is tracked.
+
+## 1. Tracing (LangSmith)
+We utilize **LangSmith** for deep introspection into the LangGraph execution flow, using a `TelemetryFacade`.
+
+## 2. Metrics (Prometheus & Grafana)
+The system exposes a `/metrics` endpoint for Prometheus. Key metrics: `rti_requests_total`, `rag_retrieval_latency_seconds`, `rti_token_usage_total`.
+
+## 3. Structured Logging
+Logs are formatted as JSON via `python-json-logger` for seamless ELK ingestion.
+
+## 4. Correlation IDs
+To trace a single citizen request across async boundaries, we use Python `contextvars` (`request_id`, `graph_run_id`).
+
+## 5. Hallucination Scoring
+The `hallucination_detector.py` computes a `risk_score`. Scores > 0.4 trigger HITL review.
+
+## 6. Debugging Replays
+The `GraphReplayEngine` integrates with the LangGraph PostgreSQL checkpointer to reconstruct traces.

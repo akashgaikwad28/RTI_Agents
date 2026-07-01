@@ -1,0 +1,582 @@
+[
+  {
+    "file": "observability/audit_logger.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "log_audit_action",
+        "docstring": "Logs an action to the immutable audit stream.\nRequires before/after state to prove transitions."
+      }
+    ]
+  },
+  {
+    "file": "observability/context.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "get_context_dict",
+        "docstring": "Extracts all observability context into a dictionary for logging."
+      },
+      {
+        "name": "set_request_context",
+        "docstring": "Sets request-level context variables. Returns tokens for resetting."
+      },
+      {
+        "name": "set_graph_context",
+        "docstring": "Sets graph-level context variables. Returns tokens for resetting.\nCall this from graph_builder before ainvoke and reset after."
+      },
+      {
+        "name": "set_node_context",
+        "docstring": "Sets the current node ID. Call from @trace_node decorator."
+      },
+      {
+        "name": "reset_context",
+        "docstring": "Resets context variables using their reset tokens (proper async-safe reset)."
+      },
+      {
+        "name": "clear_context",
+        "docstring": "Clears context for the current thread/task using set('') \u2014 use reset_context for async safety."
+      },
+      {
+        "name": "generate_trace_id",
+        "docstring": "Generates a UUIDv4 trace ID."
+      }
+    ]
+  },
+  {
+    "file": "observability/exception_logger.py",
+    "classes": [
+      {
+        "name": "BaseRTIException",
+        "docstring": "Base exception class for RTI-Agent with structured metadata.",
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "ValidationError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "RetrievalError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "EmbeddingError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "OCRFailure",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "ToolExecutionError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "GraphExecutionError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "SecurityViolation",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      },
+      {
+        "name": "HallucinationRiskError",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "__init__",
+            "docstring": null
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "format_exception_dict",
+        "docstring": "Formats an exception into a structured dictionary for logging."
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      },
+      {
+        "name": "__init__",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/graph_tracer.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "compress_state",
+        "docstring": "Computes changed keys and a hash of the new state.\nPrevents massive object graphs from blowing up log files."
+      },
+      {
+        "name": "log_graph_start",
+        "docstring": null
+      },
+      {
+        "name": "log_graph_end",
+        "docstring": null
+      },
+      {
+        "name": "default_serializer",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/json_formatter.py",
+    "classes": [
+      {
+        "name": "TelemetryJsonFormatter",
+        "docstring": "Custom JSON formatter with context propagation and PII redaction.",
+        "methods": [
+          {
+            "name": "add_fields",
+            "docstring": null
+          },
+          {
+            "name": "format",
+            "docstring": "Applies PII redaction to the dict before serialization."
+          },
+          {
+            "name": "process_log_record",
+            "docstring": "Hook into pythonjsonlogger to redact before JSON stringification."
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "add_fields",
+        "docstring": null
+      },
+      {
+        "name": "format",
+        "docstring": "Applies PII redaction to the dict before serialization."
+      },
+      {
+        "name": "process_log_record",
+        "docstring": "Hook into pythonjsonlogger to redact before JSON stringification."
+      }
+    ]
+  },
+  {
+    "file": "observability/llm_telemetry.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "estimate_cost",
+        "docstring": "Estimates USD cost based on token counts."
+      },
+      {
+        "name": "track_llm_call",
+        "docstring": "Tracks metrics and logs the LLM call via the central telemetry facade."
+      }
+    ]
+  },
+  {
+    "file": "observability/logger.py",
+    "classes": [
+      {
+        "name": "SamplingFilter",
+        "docstring": "Filters logs based on sampling rules.",
+        "methods": [
+          {
+            "name": "filter",
+            "docstring": null
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "_create_handler",
+        "docstring": "Creates a file handler. Uses rotation on Linux, but flat files on Windows to avoid WinError 32 lock conflicts."
+      },
+      {
+        "name": "_create_console_handler",
+        "docstring": null
+      },
+      {
+        "name": "get_logger",
+        "docstring": "Returns a configured logger with standard handlers.\n(This function exists for backward compatibility, but domain facades should be preferred)."
+      },
+      {
+        "name": "filter",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/log_sampling.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "should_sample",
+        "docstring": "Determines if a log should be written."
+      }
+    ]
+  },
+  {
+    "file": "observability/node_logger.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "trace_node",
+        "docstring": "Decorator for LangGraph nodes.\nLogs entry, exit, execution time, and state changes (compressed).\nAlso sets node_id ContextVar so all log entries are correlated.\nAlso updates rti_agent_duration Prometheus histogram."
+      },
+      {
+        "name": "decorator",
+        "docstring": null
+      },
+      {
+        "name": "_get_state_dict",
+        "docstring": null
+      },
+      {
+        "name": "_handle_result",
+        "docstring": null
+      },
+      {
+        "name": "_handle_error",
+        "docstring": null
+      },
+      {
+        "name": "sync_wrapper",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/pii_redactor.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "redact_string",
+        "docstring": "Redacts PII from a single string."
+      },
+      {
+        "name": "redact_dict",
+        "docstring": "Recursively redacts PII from dictionaries."
+      },
+      {
+        "name": "redact_log_record",
+        "docstring": "Main entry point for log formatter PII scrubbing."
+      }
+    ]
+  },
+  {
+    "file": "observability/retrieval_logger.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "log_provenance",
+        "docstring": "Logs full RAG provenance for debugging hallucinations.\nOnly writes the metadata IDs/scores, not full text, to avoid massive logs."
+      },
+      {
+        "name": "_extract_meta",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/security_logger.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "log_security_incident",
+        "docstring": "Logs a security event to the dedicated security logger.\nAutomatically increments Prometheus counters."
+      }
+    ]
+  },
+  {
+    "file": "observability/structured_logger.py",
+    "classes": [
+      {
+        "name": "RTIJsonFormatter",
+        "docstring": "Custom JSON formatter adding service metadata to every log.",
+        "methods": [
+          {
+            "name": "add_fields",
+            "docstring": null
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "get_logger",
+        "docstring": "Returns a named logger with JSON formatting.\nUses a registry to avoid duplicate handlers."
+      },
+      {
+        "name": "add_fields",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/telemetry.py",
+    "classes": [
+      {
+        "name": "TelemetryFacade",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "_emit",
+            "docstring": "Converts pydantic model to dict and pushes to logger."
+          },
+          {
+            "name": "log_graph_event",
+            "docstring": null
+          },
+          {
+            "name": "log_node_event",
+            "docstring": null
+          },
+          {
+            "name": "log_llm_call",
+            "docstring": null
+          },
+          {
+            "name": "log_retrieval",
+            "docstring": null
+          },
+          {
+            "name": "log_security_event",
+            "docstring": null
+          },
+          {
+            "name": "log_error",
+            "docstring": "Central method to log exceptions."
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "_emit",
+        "docstring": "Converts pydantic model to dict and pushes to logger."
+      },
+      {
+        "name": "log_graph_event",
+        "docstring": null
+      },
+      {
+        "name": "log_node_event",
+        "docstring": null
+      },
+      {
+        "name": "log_llm_call",
+        "docstring": null
+      },
+      {
+        "name": "log_retrieval",
+        "docstring": null
+      },
+      {
+        "name": "log_security_event",
+        "docstring": null
+      },
+      {
+        "name": "log_error",
+        "docstring": "Central method to log exceptions."
+      }
+    ]
+  },
+  {
+    "file": "observability/telemetry_models.py",
+    "classes": [
+      {
+        "name": "LogLevel",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "SecurityClassification",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "Component",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "Outcome",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "BaseTelemetryEvent",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "GraphExecutionEvent",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "NodeExecutionEvent",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "LLMEvent",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "RetrievalEvent",
+        "docstring": null,
+        "methods": []
+      },
+      {
+        "name": "SecurityEvent",
+        "docstring": null,
+        "methods": []
+      }
+    ],
+    "functions": []
+  },
+  {
+    "file": "observability/tool_logger.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "trace_tool",
+        "docstring": "Decorator to automatically trace tool execution."
+      },
+      {
+        "name": "decorator",
+        "docstring": null
+      },
+      {
+        "name": "wrapper",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/trace_exporter.py",
+    "classes": [
+      {
+        "name": "DummyTracer",
+        "docstring": null,
+        "methods": [
+          {
+            "name": "start_as_current_span",
+            "docstring": null
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "name": "setup_opentelemetry",
+        "docstring": "Initializes OpenTelemetry TracerProvider, SpanProcessors, and Exporters.\nTo be activated when OTEL is deployed."
+      },
+      {
+        "name": "get_tracer",
+        "docstring": "Returns a tracer instance."
+      },
+      {
+        "name": "start_as_current_span",
+        "docstring": null
+      },
+      {
+        "name": "dummy_span",
+        "docstring": null
+      }
+    ]
+  },
+  {
+    "file": "observability/tracing.py",
+    "classes": [],
+    "functions": [
+      {
+        "name": "setup_tracing",
+        "docstring": "Configure LangSmith tracing environment.\nCall once at application startup."
+      }
+    ]
+  }
+]

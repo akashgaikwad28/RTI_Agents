@@ -1,0 +1,11 @@
+{
+  "title": "v1",
+  "pages": [
+    "index",
+    "architecture",
+    "request-lifecycle",
+    "data-pipeline",
+    "observability",
+    "deployment"
+  ]
+}

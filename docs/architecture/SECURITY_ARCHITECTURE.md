@@ -42,17 +42,24 @@ To prevent prompt injection attacks and malicious attempts to hijack system inst
    * **Escape Sequence Blocks**: Filters out shell characters, raw pipe sequences, and terminal redirection characters to prevent command execution issues.
    * **Script Execution Filters**: Scrups out raw HTML script tags, Javascript anchors, and CSS injection strings.
 
+### AI Model Guardrails (Llama Guard)
+* **Real Code File**: [security/ai_guardrails.py](file:///C:/Users/akash/RTI_Agents/security/ai_guardrails.py)
+
+For semantic protection, we route inputs through a dedicated security LLM:
+* **Llama Guard 3 8B**: Hosted on the free Groq API. It classifies user prompts in real-time, detecting jailbreaks, prompt injections, and policy violations. If Llama Guard flags a prompt as `unsafe`, the request is blocked before reaching the main multi-agent pipeline.
+* **Regex Fallback**: In the event of an API outage, the system falls back to regex-based prompt injection detection for high-availability.
+
 ---
 
 ## 3. PII Masking & Privacy Redaction
 
 * **Real Code File**: [security/pii_masker.py](file:///C:/Users/akash/RTI_Agents/security/pii_masker.py)
 
-The system automatically redacts sensitive Personal Identifiable Information (PII) before passing text to third-party LLM APIs:
+The system automatically redacts sensitive Personal Identifiable Information (PII) before passing text to third-party LLM APIs. Our implementation relies on a highly-optimized Custom Regex Engine tailored for Indian PII formats, rather than heavy NLP frameworks like Presidio:
 
-* **Name Masking**: Uses Named Entity Recognition (NER) models to locate applicant names, replacing them with generic tokens (e.g. `[APPLICANT_NAME]`).
-* **Phone Number Redaction**: Regular expression checks match common mobile configurations, substituting them with generic `[PHONE_NUMBER]` labels.
-* **National Identifier Sanitizing**: Aadhaar and PAN card identifiers are identified and masked to `[AADHAAR_ID]` or `[PAN_CARD]`.
+* **National Identifiers**: Masks Aadhaar numbers (12-digit) to `[AADHAAR_MASKED]` and PAN cards to `[PAN_MASKED]`.
+* **Financial Data**: Masks Indian Bank Account numbers and Credit/Debit Cards to `[ACCOUNT_MASKED]` and `[CARD_MASKED]`.
+* **Contact Details**: Masks Indian mobile numbers to `[PHONE_MASKED]` and emails to `[EMAIL_MASKED]`.
 * **Dynamic Recovery**: The original values are stored securely in the local state's `user_input` dictionary and only restored in the final drafted document before PDF generation, ensuring user privacy throughout the LLM processing pipeline.
 
 ---

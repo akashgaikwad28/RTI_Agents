@@ -7,9 +7,10 @@ import time
 
 from config.settings import settings
 from graph.state import RTIAgentState
-from observability.metrics import rti_agent_duration, rti_retrieval_score
+from observability.metrics import rti_agent_duration, rti_retrieval_score, rag_retrieval_latency
 from observability.telemetry import telemetry
 from observability.logger import get_logger
+from observability.retrieval_logger import log_provenance
 from rag.retriever import retrieve_multilingual_results
 from rag.retrievers.metadata_filter import infer_department
 
@@ -52,11 +53,17 @@ async def retrieval_node(state: RTIAgentState) -> dict:
 
     duration_ms = (time.perf_counter() - started) * 1000
     rti_agent_duration.labels(agent="retrieval_node").observe(duration_ms / 1000)
+    rag_retrieval_latency.observe(duration_ms / 1000)
 
-    workflow_path = [*state.get("workflow_path", []), "retrieval_node"]
-    logger.info(
-        f"[RetrievalNode] done | request_id={request_id} | chunks={len(contexts)} | "
-        f"cache_hit={cache_hit} | confidence={confidence:.3f} | latency_ms={duration_ms:.0f}"
+    # H2: Log full RAG provenance (was dead code before — now wired)
+    log_provenance(
+        query=formal_query,
+        latency_ms=duration_ms,
+        retrieved_docs=result_rows,
+        reranked_docs=result_rows,   # reranking is done inside retrieve_multilingual_results
+        final_docs=result_rows,
+        dropped_docs=[],
+        cache_hit=cache_hit
     )
 
     telemetry.log_retrieval(

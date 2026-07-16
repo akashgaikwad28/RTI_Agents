@@ -1,0 +1,27 @@
+---
+title: Future Roadmap
+description: Upcoming features and architectural upgrades for RTI Agent.
+---
+
+# Future Roadmap
+
+The RTI Agent platform is continuously evolving. Below are the key milestones planned for future releases.
+
+## Phase 1: Core Reliability (Current)
+- [x] Multi Agent Debate implementation
+- [x] LangGraph state checkpointing (PostgreSQL)
+- [x] RAGAS evaluation pipeline integration
+- [x] Next.js enterprise documentation portal
+
+## Phase 2: Enhanced Retrieval
+- [ ] **GraphRAG**: Implementing Graph Retrieval Augmented Generation using Neo4j to map relationships between government departments, officials, and policies.
+- [ ] **Multi Modal Ingestion**: Support for extracting context from audio recordings of public hearings and image based scanned documents.
+- [ ] **Qdrant Migration**: Full migration from local FAISS to a distributed Qdrant cluster for billion scale vector search.
+
+## Phase 3: Advanced Agentic Features
+- [ ] **Tool Use (Function Calling)**: Allow agents to trigger external API calls (e.g., automatically submitting an RTI draft to a designated government portal).
+- [ ] **Long Term Memory**: Implement Mem0 or similar long term memory solutions so agents can remember context across sessions for specific users.
+- [ ] **Federated Learning**: Enable privacy preserving model fine tuning across different local government deployments.
+
+## Phase 4: Decentralization
+- [ ] **Local LLM Support**: Enable switching to local models (e.g., Llama 3 or Mistral via vLLM) for ultra sensitive environments where data cannot leave the premise.

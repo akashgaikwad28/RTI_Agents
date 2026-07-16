@@ -14,12 +14,11 @@ class CrossLingualSearch:
         all_results: list[RetrievalResult] = []
         cache_hits = []
         confidences = []
-        search_languages = languages or ["", "en", "hi", "mr"]
         
         tasks = []
         for query in queries:
-            for language in search_languages:
-                tasks.append(retrieve_rag_results(query, department=department, language=language, k=k))
+            # Use native cross-lingual embedding matching instead of metadata permutations
+            tasks.append(retrieve_rag_results(query, department=department, language="", k=k))
                 
         task_results = await asyncio.gather(*tasks)
         

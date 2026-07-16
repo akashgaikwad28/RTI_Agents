@@ -20,6 +20,12 @@ if not os.environ.get("GEMINI_API_KEY") or "your_" in os.environ.get("GEMINI_API
     os.environ["GEMINI_API_KEY"] = "AIzaSyDummyKey_12345678901234567890"
 if not os.environ.get("RTI_API_KEY"):
     os.environ["RTI_API_KEY"] = "change-me-in-production"
+if not os.environ.get("JWT_SECRET_KEY"):
+    os.environ["JWT_SECRET_KEY"] = "super-secret-key-12345"
+if not os.environ.get("ADMIN_SEED_EMAIL"):
+    os.environ["ADMIN_SEED_EMAIL"] = "admin@example.com"
+if not os.environ.get("ADMIN_SEED_PASSWORD"):
+    os.environ["ADMIN_SEED_PASSWORD"] = "admin-password-123"
 
 # Reconfigure stdout to use UTF-8 on Windows to prevent cp1252 UnicodeEncodeErrors
 if hasattr(sys.stdout, "reconfigure"):

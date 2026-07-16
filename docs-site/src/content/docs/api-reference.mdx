@@ -1,0 +1,63 @@
+---
+title: API Reference
+description: Public API documentation for RTI Agent backend.
+---
+
+# API Reference
+
+The RTI Agent exposes several RESTful endpoints for integration with external applications.
+
+## Endpoints
+
+### 1. Execute Query
+`POST /api/v1/query`
+
+Submit a question to the RTI Agent.
+
+**Request Body**:
+```json
+{
+  "query": "What are the rules regarding unspent funds in the rural development budget?",
+  "history": [ ... ],
+  "stream": true
+}
+```
+
+**Response** (Streaming Mode): Server Sent Events (SSE) stream of token chunks.
+
+### 2. Get Graph State
+`GET /api/v1/graph/:thread_id`
+
+Retrieves the internal state of the LangGraph execution for a given thread, including arguments raised during the debate node.
+
+**Response**:
+```json
+{
+  "thread_id": "uuid",
+  "status": "AWAITING_REVIEW",
+  "current_node": "reviewer_node",
+  "state": {
+    "query": "...",
+    "draft": "...",
+    "citations": ["doc1", "doc2"]
+  }
+}
+```
+
+### 3. Approve Draft (HITL)
+`POST /api/v1/admin/approve`
+
+Approve or modify a draft response that is blocked in the Reviewer Node.
+
+**Request Body**:
+```json
+{
+  "thread_id": "uuid",
+  "approved_text": "The verified response..."
+}
+```
+
+### 4. Search Vectors
+`POST /api/v1/retrieval/search`
+
+Directly query the FAISS/Qdrant vector index, bypassing the LLM agents. Useful for raw document retrieval.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import re
 import time
 from typing import Any
 
@@ -40,32 +41,36 @@ class MongoDBVectorStore(BaseVectorStore):
             return asyncio.run(self.aadd_chunks(chunks))
 
     async def aadd_chunks(self, chunks: list[DocumentChunk]) -> dict[str, int]:
-        """Async implementation of adding semantic chunks to MongoDB."""
+        """Async implementation of adding semantic chunks to MongoDB with batched embeddings and bulk inserts."""
         if not chunks:
             return {"indexed": 0, "duplicates": 0}
 
         collection = await self._get_collection()
-        texts = [chunk.text for chunk in chunks]
         
-        # Embed all texts concurrently
-        embeddings = await asyncio.to_thread(self.embedder.embed_documents, texts)
+        from pymongo import IndexModel, ASCENDING
+        from pymongo.errors import BulkWriteError
+        
+        # Ensure unique index on chunk_id for automatic deduplication
+        await collection.create_indexes([
+            IndexModel([("chunk_id", ASCENDING)], unique=True),
+            IndexModel([("content_hash", ASCENDING)]),
+            IndexModel([("metadata.is_active", ASCENDING)]),
+        ])
 
-        operations = []
-        duplicates = 0
-        indexed = 0
+        # Batch embed documents to prevent API rate limits and payload too large errors
+        batch_size = getattr(settings, "EMBEDDING_BATCH_SIZE", 100)
+        embeddings = []
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i + batch_size]
+            texts = [chunk.text for chunk in batch]
+            if hasattr(self.embedder, "aembed_documents"):
+                batch_embeddings = await self.embedder.aembed_documents(texts)
+            else:
+                batch_embeddings = await asyncio.to_thread(self.embedder.embed_documents, texts)
+            embeddings.extend(batch_embeddings)
 
+        docs_to_insert = []
         for chunk, embedding in zip(chunks, embeddings):
-            # Check for duplicates by chunk_id or content_hash
-            existing = await collection.find_one({
-                "$or": [
-                    {"chunk_id": chunk.chunk_id},
-                    {"content_hash": chunk.content_hash}
-                ]
-            })
-            if existing:
-                duplicates += 1
-                continue
-
             metadata = chunk.metadata.model_dump()
             metadata.update({
                 "chunk_id": chunk.chunk_id,
@@ -83,13 +88,24 @@ class MongoDBVectorStore(BaseVectorStore):
                 "metadata": metadata,
                 "created_at": time.time(),
             }
-            operations.append(collection.insert_one(doc))
-            indexed += 1
+            docs_to_insert.append(doc)
 
-        if operations:
-            await asyncio.gather(*operations)
+        indexed = 0
+        duplicates = 0
+        if docs_to_insert:
+            try:
+                result = await collection.insert_many(docs_to_insert, ordered=False)
+                indexed = len(result.inserted_ids)
+            except BulkWriteError as exc:
+                indexed = exc.details.get("nInserted", 0)
+                # Only count actual duplicate key errors (code 11000) as duplicates
+                dup_errors = [e for e in exc.details.get("writeErrors", []) if e.get("code") == 11000]
+                duplicates = len(dup_errors)
+                non_dup_errors = [e for e in exc.details.get("writeErrors", []) if e.get("code") != 11000]
+                if non_dup_errors:
+                    logger.error(f"[MongoDBStore] {len(non_dup_errors)} non-duplicate write errors: {non_dup_errors[:3]}")
 
-        logger.info(f"[MongoDBStore] Ingested {indexed} chunks, skipped {duplicates} duplicates.")
+        logger.info(f"[MongoDBStore] Ingested {indexed} chunks, skipped {duplicates} duplicates (bulk batch).")
         return {"indexed": indexed, "duplicates": duplicates}
 
     def rebuild(self, chunks: list[DocumentChunk]) -> dict[str, int]:
@@ -277,7 +293,8 @@ class MongoDBVectorStore(BaseVectorStore):
             {
                 "$or": [
                     {"metadata.document_id": document_id},
-                    {"metadata.source_hash": {"$regex": f"^{document_id}"}},
+                    # Fix: escape user-supplied document_id before using in regex (prevents ReDoS)
+                    {"metadata.source_hash": {"$regex": f"^{re.escape(document_id)}"}},
                 ]
             },
             {"_id": 0, "metadata": 1},

@@ -1,0 +1,15 @@
+{
+  "title": "Agent Manuals",
+  "pages": [
+    "AGENT_SYSTEM_OVERVIEW",
+    "router_agent",
+    "planner_agent",
+    "formatter_agent",
+    "classifier_agent",
+    "retrieval_agent",
+    "reviewer_agent",
+    "reflection_agent",
+    "approval_agent",
+    "tracker_agent"
+  ]
+}

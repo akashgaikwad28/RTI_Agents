@@ -1,4 +1,4 @@
-<div align="center">
+div align="center">
   <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
   <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python Version" />

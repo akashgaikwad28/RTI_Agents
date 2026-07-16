@@ -8,12 +8,25 @@ from observability.metrics import rti_estimated_cost_usd, rti_token_usage_total
 from observability.telemetry import telemetry
 from observability.telemetry_models import Outcome, LogLevel
 
-# Rough estimation pricing (USD per 1k tokens) as placeholders.
-# For production, these should be configured dynamically or pulled from a provider API.
+# Rough estimation pricing (USD per 1k tokens).
+# Keys are substrings matched against the actual model name string.
 COST_TABLE = {
-    "groq": {"llama3": {"prompt": 0.0005, "completion": 0.001}},
-    "openai": {"gpt-4o": {"prompt": 0.005, "completion": 0.015}},
-    "gemini": {"gemini-1.5-pro": {"prompt": 0.0035, "completion": 0.0105}}
+    "groq": {
+        "llama-3.1-8b": {"prompt": 0.00005, "completion": 0.00008},  # ~free tier
+        "llama-3.3-70b": {"prompt": 0.00059, "completion": 0.00079},
+        "llama-guard": {"prompt": 0.00020, "completion": 0.00020},
+        "llama3": {"prompt": 0.00005, "completion": 0.00008},  # legacy fallback
+    },
+    "openai": {
+        "gpt-4o": {"prompt": 0.005, "completion": 0.015},
+        "gpt-4o-mini": {"prompt": 0.00015, "completion": 0.0006},
+        "gpt-4": {"prompt": 0.03, "completion": 0.06},
+    },
+    "gemini": {
+        "gemini-2.5-flash": {"prompt": 0.000075, "completion": 0.0003},
+        "gemini-1.5-pro": {"prompt": 0.0035, "completion": 0.0105},
+        "gemini-1.5-flash": {"prompt": 0.000075, "completion": 0.0003},
+    },
 }
 
 def estimate_cost(provider: str, model_name: str, prompt_tokens: int, completion_tokens: int) -> float:

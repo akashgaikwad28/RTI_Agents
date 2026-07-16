@@ -17,7 +17,23 @@ class VectorManager:
         self.chunker = SmartChunker()
 
     async def ingest_documents(self, documents: list[LoadedDocument], *, rebuild: bool = False) -> IngestionReport:
-        chunks = self.chunker.chunk_documents(documents)
+        from observability.structured_logger import get_logger
+        logger = get_logger(__name__)
+
+        valid_documents: list[LoadedDocument] = []
+        failed_files: list[str] = []
+        for doc in documents:
+            try:
+                # Validate document has non-empty text before chunking
+                if not doc.text or not doc.text.strip():
+                    raise ValueError("Document has empty text body")
+                valid_documents.append(doc)
+            except Exception as exc:
+                src = doc.metadata.source_url or doc.metadata.source_path or "unknown"
+                logger.warning(f"[VectorManager] Skipping bad document '{src}': {exc}")
+                failed_files.append(src)
+
+        chunks = self.chunker.chunk_documents(valid_documents)
         if rebuild:
             result = await self.store.arebuild(chunks)
         else:
@@ -30,6 +46,7 @@ class VectorManager:
             chunks_created=len(chunks),
             chunks_indexed=result["indexed"],
             duplicates_skipped=result["duplicates"],
+            failed_files=failed_files,
             vector_store_path=vector_path,
         )
 

@@ -26,15 +26,18 @@ from rag.types import LoadedDocument, ScrapeResult, ScrapeTarget
 
 logger = get_logger(__name__)
 
-DEFAULT_CONFIG = Path("config/gov_sources.json")
-RAW_DIR = Path("rag/ingestion/corpus/raw")
-FAILED_DIR = Path("rag/ingestion/corpus/failed")
+# Fix S8: resolve paths relative to project root, not CWD
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CONFIG = _PROJECT_ROOT / "config" / "gov_sources.json"
+RAW_DIR = _PROJECT_ROOT / "rag" / "ingestion" / "corpus" / "raw"
+FAILED_DIR = _PROJECT_ROOT / "rag" / "ingestion" / "corpus" / "failed"
 
 
 @dataclass
 class AsyncRateLimiter:
     rate_per_second: float
-    _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    # Fix S1: use lambda so each instance gets its OWN lock, not a shared class-level one
+    _lock: asyncio.Lock = field(default_factory=lambda: asyncio.Lock())
     _last_call: float = 0.0
 
     async def wait(self) -> None:
@@ -87,7 +90,16 @@ class GovernmentScraper:
         headers = {"User-Agent": self.user_agent}
         async with self.session_factory(timeout=timeout, headers=headers) as session:
             tasks = [self.scrape_target(session, target, max_depth=max_depth) for target in selected]
-            return await asyncio.gather(*tasks)
+            # Fix S2: return_exceptions=True prevents one failed target from cancelling all others
+            raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+            results = []
+            for i, r in enumerate(raw_results):
+                if isinstance(r, Exception):
+                    logger.error(f"[GovernmentScraper] Target '{selected[i].name}' failed: {r}")
+                    results.append(ScrapeResult(target=selected[i].name, failures=[str(r)]))
+                else:
+                    results.append(r)
+            return results
 
     async def scrape_target(
         self,
@@ -99,10 +111,34 @@ class GovernmentScraper:
         result = ScrapeResult(target=target.name)
         limiter = AsyncRateLimiter(target.rate_limit_per_second)
         depth_limit = min(max_depth if max_depth is not None else target.max_depth, getattr(settings, "MAX_SCRAPE_DEPTH", target.max_depth))
-        queue: asyncio.Queue[tuple[str, int]] = asyncio.Queue()
+        # Fix queue-size guard: prevent OOM from huge sitemaps
+        max_queue = getattr(settings, "MAX_SCRAPE_QUEUE", 5000)
+        queue: asyncio.Queue[tuple[str, int]] = asyncio.Queue(maxsize=max_queue)
         base = str(target.base_url).rstrip("/")
         for path in target.start_paths:
             await queue.put((urljoin(base + "/", path.lstrip("/")), 0))
+
+        # Check for sitemaps declared in robots.txt (Fix S5: also check robots allows sitemap URL)
+        sitemap_urls = []
+        domain = urlparse(base).netloc.lower()
+        if await self._robots_allowed(session, base):
+            if domain in self._robots and self._robots[domain].site_maps():
+                sitemap_urls.extend(self._robots[domain].site_maps())
+        if not sitemap_urls:
+            sitemap_urls.append(urljoin(base + "/", "sitemap.xml"))
+
+        for sitemap_url in sitemap_urls:
+            # Fix S5: check robots.txt allows the sitemap URL before fetching it
+            if not await self._robots_allowed(session, sitemap_url):
+                logger.info(f"[GovernmentScraper] Sitemap blocked by robots.txt: {sitemap_url}")
+                continue
+            urls = await self._parse_sitemap(session, sitemap_url, target)
+            for url in urls:
+                try:
+                    queue.put_nowait((url, 0))
+                except asyncio.QueueFull:
+                    logger.warning(f"[GovernmentScraper] Queue full, skipping remaining sitemap URLs for {sitemap_url}")
+                    break
 
         visited: set[str] = set()
         while not queue.empty():
@@ -181,6 +217,22 @@ class GovernmentScraper:
                 parser.parse([])
             self._robots[domain] = parser
         return self._robots[domain].can_fetch(self.user_agent, url)
+
+    async def _parse_sitemap(self, session: aiohttp.ClientSession, sitemap_url: str, target: ScrapeTarget) -> list[str]:
+        try:
+            content, _ = await self._fetch(session, sitemap_url)
+            # Fix X6: sitemaps are XML — use the xml parser to handle namespaces correctly
+            soup = BeautifulSoup(content, features="xml")
+            urls = []
+            for loc in soup.find_all("loc"):
+                candidate = _normalize_url(loc.text.strip())
+                if self._allowed_domain(candidate, target):
+                    urls.append(candidate)
+            logger.info(f"[GovernmentScraper] Found {len(urls)} URLs in sitemap {sitemap_url}")
+            return urls
+        except Exception as exc:
+            logger.warning(f"[GovernmentScraper] Sitemap parse failed for {sitemap_url}: {exc}")
+            return []
 
     def _discover_links(self, html: str, base_url: str, target: ScrapeTarget) -> list[str]:
         soup = BeautifulSoup(html, "html.parser")

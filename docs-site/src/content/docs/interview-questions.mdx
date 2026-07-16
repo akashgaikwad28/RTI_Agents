@@ -1,0 +1,248 @@
+---
+title: Interview Questions (Mock Prep)
+description: 50 technical interview questions and answers across LangGraph, FastAPI, RAG, and system security.
+---
+
+# 50 Technical Interview Questions & Answers (RTI Agent)
+*Prepared for AI Engineer / Senior Python Developer roles based on the RTI Agent Production Architecture*
+
+---
+
+## 📂 Category 1: Agentic Workflows & LangGraph (Questions 1 10)
+
+### Q1: Why did you choose LangGraph instead of standard LangChain chains or CrewAI/Autogen?
+**Answer:** LangGraph represents agentic workflows as a stateful, cyclical directed graph (StateGraph). Standard LangChain chains only support linear, acyclic execution. CrewAI and AutoGen operate as conversational black boxes where agents talk to each other without deterministic bounds. For a legal application like filing an RTI, we require **deterministic control over stochastic models**. LangGraph allows us to explicitly define graph nodes (agents) and conditional edges (decision logic), enforce strict execution paths, and natively persist execution threads for Human in the Loop intercepts.
+
+### Q2: Explain the structure and significance of `RTIAgentState` in your implementation.
+**Answer:** The state (`graph/state.py`) is implemented as a Python `TypedDict`. It acts as the single source of truth that flows through every node in the graph. It contains variables for session tracking (`request_id`, `thread_id`), intermediate outputs (`sanitized_query`, `formal_query`, `retrieved_context`), evaluation logs (`review_score`, `hallucination_flags`), and execution metadata (`agent_durations`, `llm_models_used`). By maintaining a centralized state, our nodes can remain stateless functions that only return the specific fields they mutate, which LangGraph automatically merges back into the main state.
+
+### Q3: How is the conversation history managed in the state without overwriting past messages?
+**Answer:** In `graph/state.py`, the `conversation_history` field is defined using LangGraph's native reducer:
+```python
+conversation_history: Annotated[list[dict], add_messages]
+```
+The `add_messages` annotation is a reducer function. Instead of replacing the list of messages when a node returns a new list, LangGraph automatically appends new messages or updates existing messages if they share the same ID. This maintains thread integrity across multi turn interactions.
+
+### Q4: What is the purpose of the `get_graph` function, and how is its lifecycle managed?
+**Answer:** `get_graph` (in `graph/graph_builder.py`) compiles the `StateGraph` and returns a compiled graph instance. It is implemented using the **Singleton Pattern**:
+```python
+_graph_instance = None
+def get_graph(enable_hitl: bool = True):
+    global _graph_instance
+    if _graph_instance is None:
+        _graph_instance = build_graph(enable_hitl=enable_hitl)
+    return _graph_instance
+```
+Compiling a LangGraph requires importing all nodes, loading system prompts, verifying schemas, and building the execution state machine, which is computationally expensive. Running it as a singleton ensures compile overhead only occurs once during FastAPI server startup, reducing endpoint response times.
+
+### Q5: How did you implement Human in the Loop (HITL) in the graph, and how does the graph pause?
+**Answer:** The graph is compiled with the `interrupt_before` parameter targeting the approval node:
+```python
+graph = builder.compile(checkpointer=checkpointer, interrupt_before=["approval_node"])
+```
+When a user submits a query, the graph executes asynchronously until it hits the `approval_node`. Because of the `interrupt_before` directive, LangGraph automatically halts execution, serializes the current state of the thread to our checkpointer database, and yields control back to the application. The thread status is marked `awaiting_approval` in MongoDB.
+
+### Q6: How does the system resume a paused LangGraph thread once a human provides input?
+**Answer:** Resuming is handled in `/api/v1/approve/{request_id}`. The backend fetches the decision payload (approve/reject, edits, approver ID). It updates the thread state with the user's decision using `graph.aupdate_state` and triggers execution by calling `ainvoke` with `None` as the input (which signals the graph to resume from its last checkpoint):
+```python
+await graph.aupdate_state(config, resume_state)
+result = await graph.ainvoke(None, config=config)
+```
+The graph then resumes, processes the approval state inside `approval_node`, and transitions to the `consensus_node` or `reflection_node` based on the conditional routing logic.
+
+### Q7: What are checkpointers in LangGraph, and why do we use SQLite in dev and Postgres in prod?
+**Answer:** Checkpointers are persistence adapters that serialize and write thread state snapshots to a database after every node execution. 
+*   **Development:** We use `MemorySaver` or local `SQLite` checkpointers. These are fast, require zero configuration, and save state to local files.
+*   **Production:** Serverless/container environments (like Render or Vercel) have ephemeral filesystems; local SQLite files are wiped during restarts. We use a custom `LazyPostgresCheckpointer` backed by a remote **Neon Serverless PostgreSQL** database. This ensures checkpointers persist across server scaling, deployments, and restarts.
+
+### Q8: Describe the self correction routing loop in the graph. How does the graph know when to stop retrying?
+**Answer:** In `graph/router.py`, the `route_after_reflection` edge controls the loop. The `reviewer_node` and `critic_node` assign evaluation outputs (`review_passed: bool`, `retry_count: int`). 
+*   If a draft fails validation, the router checks if `retry_count < max_retries` (default is 2).
+*   If yes, the graph routes back to `formatter_node` to re draft using feedback from `reflection_node`.
+*   If the retry limit is hit (`retry_count >= max_retries`), the loop terminates, and the router directs the state to `tracker_node` to log the failure, preventing infinite execution loops and runaway API costs.
+
+### Q9: How do LangGraph nodes communicate with external APIs asynchronously?
+**Answer:** Every node function in `graph/nodes/` is declared as an asynchronous function (using `async def`). When calling external LLM providers (Google Gemini, Groq) or async databases, we use the `await` keyword. For synchronous CPU heavy operations (like loading text from large PDFs or calculating cosine similarities locally), we offload execution to a separate worker thread using `asyncio.to_thread` to prevent blocking FastAPI's event loop.
+
+### Q10: How does the `debate_node` work, and why did you implement it?
+**Answer:** The `debate_node` acts as a consensus gate. Instead of relying on a single LLM draft, the node simulates a debate between multiple AI personas (e.g., a "Legal Expert" checking compliance and a "Government Bureaucrat" checking phrasing). It compiles their arguments, resolves conflicts, and outputs a consensus draft. This multi agent debate design drastically reduces semantic errors and improves overall drafting quality.
+
+---
+
+## ⚡ Category 2: FastAPI & Asynchronous Python (Questions 11 20)
+
+### Q11: Explain how you run the LangGraph execution in the background of a FastAPI endpoint without blocking the HTTP response.
+**Answer:** When a user hits `/api/v1/submit`, the endpoint immediately saves an initial draft to MongoDB and returns an HTTP `202 Accepted` status with a `request_id`. It then spawns the async LangGraph workflow in the background using `asyncio.create_task()`:
+```python
+task = asyncio.create_task(run_workflow())
+request.app.state.background_tasks.add(task)
+task.add_done_callback(request.app.state.background_tasks.discard)
+```
+This frees up the FastAPI request response thread immediately, allowing the client to poll the status or stream events via SSE while the heavy agent logic processes.
+
+### Q12: Why do you store background tasks in a `set` on `request.app.state.background_tasks`?
+**Answer:** In Python's `asyncio`, if you create a background task using `asyncio.create_task()` without keeping a strong reference to it on the running event loop, the Python garbage collector can destroy the task midway through its execution. Storing the task in a global `set` keeps a strong reference to it. The `add_done_callback(set.discard)` callback ensures the task removes itself from the set once it completes, preventing memory leaks.
+
+### Q13: What is the difference between synchronous `pymongo` and asynchronous `motor` drivers? Why did you use `motor`?
+**Answer:** `pymongo` is synchronous and blocking; whenever it queries MongoDB, it blocks the entire operating system thread waiting for the database response. In a single threaded async framework like FastAPI, this halts the entire server. `motor` is an async wrapper for MongoDB. It utilizes `greenlet` or asyncio native event hooks, allowing FastAPI to yield execution to other concurrent requests while waiting for MongoDB query results.
+
+### Q14: How do you handle database connection pooling and lifecycle events in FastAPI?
+**Answer:** We manage MongoDB's lifecycle inside `mcp_clients/mongo_client.py` and invoke it during application startup. The `AsyncIOMotorClient` manages its own internal connection pool. We execute a `ping` command on startup to verify the connection and trigger index creation, and close the client during the shutdown phase:
+```python
+async def connect(self):
+    self.client = AsyncIOMotorClient(settings.MONGO_URI, serverSelectionTimeoutMS=5000)
+    await self.client.admin.command("ping")
+    await self._create_indexes()
+```
+
+### Q15: Why are database indexes critical in this application, and which ones did you implement?
+**Answer:** Indexes prevent full collection scans, which degrade database performance. In `mongo_client.py`, we implement several index models:
+*   `users`: Unique index on `email` (for fast login queries).
+*   `refresh_tokens`: Unique index on `jti` (JWT Token ID) and an automatic **TTL index** on `expires_at` (so MongoDB automatically deletes expired tokens).
+*   `rti_requests`: Unique index on `request_id` and compound/sparse index on `tracking_id` and `created_at` for rapid pagination.
+*   `translation_memory`: Compound index on `source_language` and `target_language` to optimize localization queries.
+
+### Q16: How does the event driven system communicate background agent states to the frontend in real time?
+**Answer:** We implemented an in process, async Event Bus (`communication/event_bus.py`). Agent nodes publish events (e.g., `router_node_completed`) to the bus. The API exposes a streaming endpoint `/api/v1/stream/{request_id}` which uses FastAPI's `StreamingResponse` to yield events to the client using **Server Sent Events (SSE)**. The frontend listens to this stream and updates its progress UI dynamically.
+
+### Q17: How do you prevent thread safety issues when multiple background tasks access MongoDB or Redis simultaneously?
+**Answer:** Python's `asyncio` runs on a **single thread** using an event loop. Because the code is single threaded, standard multi threaded race conditions (like memory corruption) do not occur. However, logical race conditions (e.g., read modify write) are avoided by using atomic MongoDB operations like `$push`, `$set`, and `$setOnInsert` inside a single update call rather than performing separate `find` and `update` calls.
+
+### Q18: What is Uvicorn, and what does the `--reload` flag do under the hood?
+**Answer:** Uvicorn is an ASGI (Asynchronous Server Gateway Interface) web server implementation for Python. The `--reload` flag starts Uvicorn with a directory watching monitoring thread (usually using `watchfiles` or `stat`). If any Python file in the monitored directories is modified, the reloader process gracefully kills the active server process, re imports all code, and starts a new worker process to apply changes instantly on the fly.
+
+### Q19: Explain the role and implementation of FastAPI Middlewares in your project.
+**Answer:** Middlewares intercept incoming HTTP requests and outgoing HTTP responses. We implement:
+1.  **CORS Middleware:** Allows the Next.js frontend (running on port 3000) to communicate with the backend API (port 8000).
+2.  **Rate Limiting Middleware:** Tracks request counts per IP in Redis and blocks requests with HTTP 429 if the threshold is exceeded.
+3.  **Trace Context Middleware:** Generates a unique `X-Request-ID` UUID for every request and injects it into the logging context, allowing us to trace logs across database, network, and agent scopes.
+
+### Q20: How do you handle validation errors in FastAPI payload schemas?
+**Answer:** We use **Pydantic v2** models (schemas in `api/schemas.py`, e.g., `RTISubmitRequest`). When a request payload is received, FastAPI automatically validates it against the Pydantic schema before executing the endpoint. If the data is invalid (e.g., missing query text or malformed email), FastAPI automatically raises a `ValidationError` and returns a standardized HTTP 422 Unprocessable Entity JSON response detailing the exact field and error.
+
+---
+
+## 🔍 Category 3: RAG & Vector Databases (Questions 21 30)
+
+### Q21: Explain the chunking strategy used in the ingestion pipeline. Why is it configured this way?
+**Answer:** We use a `RecursiveCharacterTextSplitter` configured with a chunk size of `512` characters and an overlap of `80` characters. The separators are prioritized as `["\n\n", "\n", ". ", "? ", "! ", "; ", ", ", " "]`. 
+*   **512 Characters:** A sweet spot that keeps the semantic context tight and cohesive without diluting the specific information in long paragraphs.
+*   **80 Overlap:** Ensures that sentences split at chunk boundaries maintain context across both chunks, preventing loss of meaning during vector queries.
+
+### Q22: What is FAISS, and how does the local vector store load and persist data on the filesystem?
+**Answer:** FAISS (Facebook AI Similarity Search) is a library for dense vector clustering and similarity search. Our local store (`faiss_store.py`) persists data to `data/faiss_index/` using LangChain bindings:
+*   `index.faiss`: Binary file storing the flat index containing raw vector coordinates.
+*   `index.pkl`: Pickled document store mapping vector IDs to original text chunks and metadata.
+*   We use `manifest.json` as an integrity index catalog mapping chunk hashes to prevent duplicate indexing.
+
+### Q23: Why is dangerous deserialization a security risk in FAISS, and how does your code handle it?
+**Answer:** FAISS saves its document mapping using Python's `pickle` library (`index.pkl`). Deserializing untrusted pickle files is highly dangerous because a malicious actor could craft a pickle file containing arbitrary code execution payloads. Our code restricts this by only enabling `allow_dangerous_deserialization=True` for locally compiled indices verified within our safe workspace directory.
+
+### Q24: How does the duplicate prevention gate work during vector ingestion, and why is it important?
+**Answer:** Before calling the embedding model, the ingestion pipeline computes the SHA 256 hash of the cleaned text chunk. It checks this hash against the manifest index. If the hash exists, the chunk is skipped. This **ingestion gate** saves significant API token costs by avoiding sending identical text blocks to Google/OpenAI embedding APIs and prevents vector database bloat.
+
+### Q25: How does MongoDB Atlas Vector Search perform similarity searches, and what is the fallback mechanism?
+**Answer:**
+*   **Atlas Search:** Uses the `$vectorSearch` aggregation stage. It takes the query embedding, queries the `"vector_index"` index built on the `embedding` path, and calculates cosine distance, returning a vector search score.
+*   **Fallback:** If not running on MongoDB Atlas (e.g., local MongoDB Community Edition), the code catches the index missing exception, downloads the filtered raw documents from the collection, and runs a manual **Python based cosine similarity calculation** inside a separate thread using `asyncio.to_thread` to prevent blocking.
+
+### Q26: Explain the difference between local embeddings and remote embeddings in your code.
+**Answer:** Controlled via settings:
+*   **Local (`local_sentence_transformers`):** Uses `sentence-transformers/all-MiniLM-L6-v2` loaded locally via PyTorch/HuggingFace. It generates 384 dimension vectors. It is completely free, runs offline, and is fast for development.
+*   **Remote (`gemini` / `openai`):** Uses cloud embedding endpoints generating 768 or 1536 dimensions. These have better multilingual semantic capture but depend on API keys, have network latency, and incur per token costs.
+
+### Q27: How does the PDF Loader handle text extraction without locking up the event loop?
+**Answer:** PDF extraction (`pdf_loader.py`) uses **PyMuPDF (`fitz`)**, which is a fast C/C++ library wrapped in Python. However, parsing hundreds of pages is CPU intensive. If executed directly, it would freeze the event loop. We use `asyncio.to_thread()` to run the PyMuPDF parsing logic inside a separate thread pool managed by Python's event loop, keeping the main ASGI thread responsive.
+
+### Q28: How does the HTML Loader extract clean text from messy web pages?
+**Answer:** HTML loader (`html_loader.py`) uses **`trafilatura`** with a fallback to **BeautifulSoup**. `trafilatura` is a specialized web scraping library designed to strip boilerplate items (navigation bars, ads, footer links, cookie warnings) and extract the main article content. This ensures the text we chunk and embed is high signal information, reducing noise in our RAG context.
+
+### Q29: What metadata is preserved with each document chunk, and why?
+**Answer:** We preserve: `source_url`, `source_path`, `title`, `department`, `document_type`, `language`, and `page_number` (critical for PDF pages). This metadata is stored alongside the vector chunk. When a query is executed, these metadata fields allow us to build precise **citations** (e.g., *"Ministry of Education Circular, Page 3"*) to output to the user and perform targeted pre filtering (e.g., only search documents belonging to a specific department).
+
+### Q30: How does the system handle OCR (Optical Character Recognition) for scanned PDFs?
+**Answer:** If the extracted text density of a PDF page is below a specific threshold (suggesting a scanned image), the pipeline triggers the `ocr_router` fallback. It passes the page image to local `PyTesseract` or `RapidOCR` engines to extract the embedded text. Both raw text and OCR text are preserved with specific metadata markers for auditing.
+
+---
+
+## 🛡️ Category 4: Resilience, Caching & Performance (Questions 31 40)
+
+### Q31: How is the Semantic Cache implemented in Redis, and what problem does it solve?
+**Answer:** Implemented in `rag/vectorstore/semantic_cache.py`. When a query is received, we embed it and query Redis. If Redis contains a query vector with a cosine similarity distance within our threshold (e.g. `> 0.90`), it returns the cached JSON response. This bypasses the entire LangGraph workflow and LLM calls, reducing response latency from ~5 seconds to `< 10ms` and saving LLM API costs.
+
+### Q32: What is the Circuit Breaker pattern, and how is it implemented for LLM providers?
+**Answer:** The circuit breaker (`llm_router/circuit_breaker.py`) wraps Groq and Gemini API clients. If consecutive calls to a provider fail (e.g. rate limit 429s or server 500s), the breaker trips to the `OPEN` state. For a timeout duration (60s), all requests are blocked from reaching the failing provider and are automatically routed to a fallback provider (e.g., Gemini fallback routes to Groq, Groq routes to Gemini, or OpenAI as a last resort).
+
+### Q33: Explain the `HALF_OPEN` state in your circuit breaker.
+**Answer:** After the `reset_timeout` (60s) has elapsed while the circuit is `OPEN`, the state transitions to `HALF_OPEN`. The next incoming request is allowed to hit the primary provider. If it succeeds, the breaker resets to `CLOSED` (normal). If it fails again, it immediately trips back to `OPEN` and resets the timer, protecting the system from wasting time on dead endpoints.
+
+### Q34: What is the Translation Memory, and how does it differ from the Translation Cache?
+**Answer:**
+*   **Translation Memory (MongoDB):** Stored in the `translation_memory` collection. It persists permanent translations of high frequency legal phrases and queries that have been verified.
+*   **Translation Cache (Redis):** A fast, ephemeral cache with a TTL (e.g., 24 hours). It stores recent raw translations to prevent redundant API calls during active user sessions.
+
+### Q35: How does `indictrans_adapter.py` handle Indic translations without an API key?
+**Answer:** The `IndicTransAdapter` attempts to connect to a local microservice running `ai4bharat/IndicTrans2` on port `8008`. If the local port is offline (throwing a connection error), the adapter catches the exception, returns the original text, and allows the `TranslatorRouter` to fallback to the `GeminiTranslator` cloud API. This provides a zero setup local dev experience while preserving local hosting options.
+
+### Q36: Why did you implement dynamic batching in `mongo_store.py` during chunk ingestion?
+**Answer:** Cloud embedding APIs have payload limits (e.g. maximum 2048 tokens or 100 documents per call) and rate limits. If we try to ingest 10,000 chunks in one call, the API will reject it. We implement dynamic batching (default batch size of 100 chunks) and batch embed them using `asyncio.to_thread` or async clients before performing a bulk MongoDB write.
+
+### Q37: How does the system handle database connection drops or timeouts in production?
+**Answer:** Inside `LazyPostgresCheckpointer` and `AsyncMongoClient`, we implement retry wrappers and validation pings. In PostgreSQL checkpointers, if a connection drop is detected, the adapter attempts to re establish the connection pool up to 3 times before raising a system error, protecting active transaction threads from crashing during brief database deployments.
+
+### Q38: How did you implement CORS configuration, and why is it necessary?
+**Answer:** CORS (Cross Origin Resource Sharing) is configured in `api/main.py` using FastAPI's `CORSMiddleware`. It is required because our Next.js frontend runs on a different port/domain (`http://localhost:3000`) than our FastAPI server (`http://localhost:8000`). Browsers block cross origin requests by default unless the server explicitly responds with headers like `Access-Control-Allow-Origin`.
+
+### Q39: What is Unicode NFC Normalization, and why is it crucial for multilingual text?
+**Answer:** Unicode NFC (Normalization Form Canonical Composition) standardizes characters that can be represented in multiple ways. For example, Devanagari script characters (used in Hindi/Marathi) can be composed of base characters plus diacritics or composite characters. NFC normalizes these representations, ensuring that search queries and database matches map to identical byte structures.
+
+### Q40: What metrics are monitored to measure system latency and performance?
+**Answer:** We expose Prometheus metrics:
+*   `rti_agent_duration`: Latency histogram tracked per node (e.g., how long `router_node` or `reviewer_node` takes).
+*   `rti_active_requests`: Gauge tracking active running tasks in the background.
+*   `rti_hallucination_flags_total`: Counter tracking the occurrence of failed grounding evaluations.
+
+---
+
+## 🔒 Category 5: System Design, Security & Standards (Questions 41 50)
+
+### Q41: Explain your security architecture for protecting against Prompt Injection attacks.
+**Answer:** We run a multi layered sanitization pipeline. Before the input query reaches the agent graph, `security/sanitizer.py` parses the string. It runs regex checks to detect typical injection patterns (e.g., system instructions override commands) and strips out scripting tags to prevent cross site scripting (XSS) at the input layer.
+
+### Q42: How is PII (Personally Identifiable Information) handled to comply with privacy standards?
+**Answer:** We use `security/pii_masker.py`. Before sending any raw query or context containing names, phone numbers, Aadhar numbers, or PAN numbers to third party LLM providers, the masker runs regex and entity matching, replacing private tokens with generic tags like `<PHONE_REDACTED>`. This keeps citizen data secure from third party logs.
+
+### Q43: How is Role Based Access Control (RBAC) enforced in the API routers?
+**Answer:** Handled in `api/routers/rti.py` using dependencies. The router inspects the authenticated user payload decoded from the JWT token. 
+*   If the role is `citizen`, the database query is filtered to only return records matching their email.
+*   If the role is `officer`, they can only view/respond to requests belonging to their canonical department.
+*   `admin` bypasses all filters.
+
+### Q44: What are the differences between `chains/`, `agents/`, and `graph/` folders?
+**Answer:**
+*   `chains/`: Legacy LangChain v0.1 pipelines running synchronous, monolithic LLM calls.
+*   `agents/`: Legacy Object Oriented wrapper classes maintaining state unsafe local memory dictionaries.
+*   `graph/`: Active LangGraph architecture using async, stateless functions for nodes, and a centralized `RTIAgentState` checkpointer snapshot loop.
+
+### Q45: How would you clean up the legacy folders in the codebase?
+**Answer:** Once baseline testing is complete and the LangGraph orchestrator is validated in staging:
+1.  Remove import references in secondary helper scripts.
+2.  Delete `/chains` and `/agents` directories.
+3.  Migrate any generic utility helpers inside `/utils` (like custom date formatters) to a standardized `utils/` folder inside `graph/` or `api/`.
+
+### Q46: How do you configure environment variables securely, and what library is used?
+**Answer:** We use **Pydantic Settings** (`config/settings.py`). It inherits from `BaseSettings` and automatically parses settings from environment variables and `.env` files with validation. Sensitive secrets (like `MONGO_URI`, `GEMINI_API_KEY`) are declared as typed Pydantic fields. This prevents server execution if a vital environment variable is missing or malformed.
+
+### Q47: How does the system handle logging in production?
+**Answer:** We use a structured JSON log formatter (`observability/structured_logger.py`). Instead of raw text lines, logs are written as single line JSON objects containing fields like `asctime`, `levelname`, `message`, `request_id`, and `node`. This structured format allows log shippers (like FluentBit) to parse and aggregate logs in cloud dashboards easily.
+
+### Q48: How is the deployment configured for Render (backend) and Vercel (frontend)?
+**Answer:**
+*   **Render (`render.yaml`):** Deploys the FastAPI server as a Docker service or Web Service. It specifies the startup command using Uvicorn: `uvicorn api.main:app --host 0.0.0.0 --port 10000`.
+*   **Vercel (`vercel.json`):** Configures root directory mapping to `frontend` so Vercel can build the Next.js React client, managing route rewriting for single page application (SPA) routing.
+
+### Q49: What is the purpose of `pyproject.toml` and `setup.py` in the root?
+**Answer:** These files define python packaging configurations. They declare the project name (`rti_agent`), version, dependency requirements (like `langgraph`, `fastapi`, `motor`), and package finders. This allows developers to install the entire project as an editable local package using `pip install -e .`.
+
+### Q50: How do you verify code correctness and run automated tests?
+**Answer:** We use **pytest**. The configurations are defined in `pytest.ini`. The tests reside in `/tests`. The test suite covers database mocks, RAG search mocks, translation routers, and API endpoints. We execute tests using `pytest -q` or `make test` to ensure no regression occurs before pushing code to staging.

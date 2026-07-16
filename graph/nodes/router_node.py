@@ -12,11 +12,8 @@ from graph.state import RTIAgentState
 from llm_router.llm_router import get_llm
 from observability.telemetry import telemetry
 from observability.logger import get_logger
-from observability.metrics import (
-    rti_agent_duration,
-    rti_requests_total,
-)
-from security.sanitizer import sanitize_query
+from observability.metrics import rti_agent_duration
+from observability.llm_telemetry import track_llm_call
 from pydantic import BaseModel
 from multilingual.detection.mixed_language_detector import MixedLanguageDetector
 from multilingual.normalization.unicode_normalizer import UnicodeNormalizer
@@ -28,9 +25,11 @@ ROUTER_SYSTEM_PROMPT = """You are an RTI (Right to Information) workflow router.
 
 Analyze the user's input and classify the INTENT into exactly one category:
 
-- "new_request"   : User wants to file a new RTI application
-- "status_check"  : User is asking about the status of an existing RTI
-- "followup"      : User has a follow-up question or wants to modify a previous RTI
+- "new_request"   : User wants to file a new RTI application or is asking for ANY government information, data, funds, or records.
+- "status_check"  : User is explicitly asking about the status, update, or progress of a previously filed RTI application (e.g. "where is my application").
+- "followup"      : User has a follow-up question or wants to modify a previous RTI.
+
+If the user is asking a question about government funds, schemes, data, or policies, it is a "new_request"!
 
 Respond ONLY with a valid JSON object:
 {"intent": "<new_request|status_check|followup>", "reason": "<one sentence explanation>"}"""
@@ -57,8 +56,8 @@ async def router_node(state: RTIAgentState) -> dict:
     if language_profile.get("needs_transliteration"):
         transliterated_query = Transliterator().transliterate(normalized_query, language=language_profile.get("language", "hi"))
 
-    # Security: sanitize before any LLM call
-    sanitized = sanitize_query(normalized_query)
+    # Security: use already-sanitized query from state (sanitized in api/routers/rti.py)
+    sanitized = state.get("sanitized_query") or normalized_query
 
     try:
         llm = get_llm(task="routing")  # Returns fast Groq model
@@ -79,7 +78,17 @@ async def router_node(state: RTIAgentState) -> dict:
 
     duration_ms = (time.time() - start_time) * 1000
     rti_agent_duration.labels(agent="router_node").observe(duration_ms / 1000)
-    rti_requests_total.labels(intent=intent).inc()
+    # NOTE: rti_requests_total is incremented in api/routers/rti.py — not here to avoid double-counting
+    # Track LLM cost
+    track_llm_call(
+        operation="router_node",
+        provider="groq",
+        model_name="llama-3.1-8b-instant",
+        prompt_tokens=0,  # actual tokens not exposed by LangChain structured output here
+        completion_tokens=0,
+        latency_ms=duration_ms,
+        success=True
+    )
 
     workflow_path = list(state.get("workflow_path", [])) + ["router_node"]
 

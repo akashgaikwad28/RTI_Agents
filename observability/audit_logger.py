@@ -6,7 +6,7 @@ Writes immutable audit trails for state transitions, approvals, and rejections.
 
 from observability.logger import audit_logger
 from observability.telemetry_models import Component, Outcome
-import time
+from datetime import datetime, timezone
 
 def log_audit_action(
     actor: str,
@@ -30,7 +30,7 @@ def log_audit_action(
         "action": action,
         "reason": reason,
         "department": department,
-        "timestamp": time.time(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     
     # Compress state for audit just like graph tracing to avoid huge files

@@ -1,0 +1,82 @@
+---
+title: RAG & Data Pipeline
+description: How RTI Agent processes and retrieves knowledge.
+---
+
+# RAG Retrieval Flow & Hybrid Vector Architecture
+
+This document defines the ingestion pipelines, multilingual retrieval models, hybrid search logic, trust scoring thresholds, and OCR fallbacks of the RTI Agent RAG (Retrieval Augmented Generation) system.
+
+## End to End Ingestion Lifecycle
+
+To build a reliable knowledge base, policy manuals and guidelines are processed through a structured ingestion pipeline:
+
+```mermaid
+graph TD
+    RawDoc[1. Raw Document: PDF / HTML / Image] --> LoaderChoice{2. File Type?}
+    
+    LoaderChoice -->|Standard PDF / Text| PDFLoader[3. PyPDF / Text Loader]
+    LoaderChoice -->|Scanned Image / PDF| OCRFallback[4. OCR Fallback Loader Tesseract]
+    LoaderChoice -->|HTML / Web Page| Crawler[5. Scraper / Crawler]
+    
+    PDFLoader --> TableExtractor[6. Table / Layout Extractor]
+    OCRFallback --> TableExtractor
+    Crawler --> TableExtractor
+    
+    TableExtractor --> Chunker[7. Semantic Text Chunker Size: 512, Overlap: 80]
+    Chunker --> Embedder[8. gemini-embedding-001 Gemini]
+    Embedder --> Store[(9. FAISS / MongoDB Vector Store)]
+    Store --> Manifest[(10. manifest.json / MongoDB Catalog)]
+```
+
+### Scanned Document & OCR Fallback Loader
+When processing administrative policy files, many documents are scanned images or low quality PDFs containing unsearchable text.
+* **OCR Fallback**: If standard text loaders return empty strings or low density pages, the loader routes the file to the **OCR Fallback Engine** (using Tesseract OCR) to extract text from images.
+* **Table Layout Extraction**: Specialized parser models extract municipal budget matrices and administrative fee tables, formatting them into Markdown tables so the embedding generator can preserve spatial data.
+
+### Semantic Chunking & Hashing
+1. Chunks are generated using a character based semantic splitter with a `CHUNK_SIZE` of `512` and `CHUNK_OVERLAP` of `80`.
+2. To prevent index duplication, the chunker computes a deterministic hash of the text.
+3. Chunks are labeled with a unique `chunk_id` format to ensure absolute tracking in the index.
+
+## Multilingual Hybrid Retrieval Flow
+
+When a query is processed by the `retrieval_node`, the retrieval engine executes a multi stage search flow:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Node as Retrieval Node
+    participant RAG as RAG Controller
+    participant Cache as Redis Semantic Cache
+    participant Store as Vector Store
+    participant Embed as Gemini Embedder
+    
+    Node->>RAG: retrieve_multilingual_results(query, department)
+    RAG->>Cache: Check Redis cache
+    alt Cache Hit
+        Cache-->>RAG: Return cached payload
+    else Cache Miss
+        RAG->>Embed: Embed query (gemini-embedding-001)
+        Embed-->>RAG: Return vector
+        RAG->>Store: similarity_search_with_score(query, k, filters)
+        Note over Store: Applies metadata filters & dynamic Python fallback
+        Store-->>RAG: Return raw chunks & scores / L2 distances
+        RAG->>RAG: Standardize/Rerank scores to (0.0-1.0)
+        RAG->>Cache: Save results to Redis cache
+    end
+    RAG-->>Node: Return RetrievalResult payload
+```
+
+* **Multilingual Query Translation**: If the input query is non English, the RAG controller translates it to English before performing the vector search. This aligns the search vocabulary with the English centric policy document index. The final response is then localized back to the user's language.
+
+## Trust Scoring & Reranking Guardrails
+
+### L2 Distance to Similarity Score Conversion
+The system dynamically standardizes similarity scoring based on the active vector store type:
+1. **MongoDB Atlas Vector Search**: Natively calculates and returns cosine similarity scores directly in the range `0.0` to `1.0`.
+2. **FAISS Vector Index**: Returns raw Euclidean L2 distance scores, which are mathematically normalized.
+
+### Grounding Thresholds & Critic Flags
+* **RAG Similarity Threshold**: Configured via `RAG_SIMILARITY_THRESHOLD = 0.7`. Retrieved chunks falling below this score are filtered out.
+* **Low Score Escalation**: If the top retrieved chunk's similarity score is below `0.55`, the `CriticNode` flags the request (`"Low top retrieval score"`). This alerts the consensus engine to trigger human in the loop validation, protecting the system against low quality drafts.

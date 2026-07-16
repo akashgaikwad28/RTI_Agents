@@ -46,8 +46,9 @@ class TranslatorRouter:
             provider_name = provider.__class__.__name__
             if translated and translated != text:
                 break
-        await self.cache.set(text, source, target_language, translated)
-        await self.memory.remember(db, text, translated, source, target_language, {"provider": provider_name})
+        if translated and translated != text:
+            await self.cache.set(text, source, target_language, translated)
+            await self.memory.remember(db, text, translated, source, target_language, {"provider": provider_name})
         return self._result(source, target_language, translated, provider_name, False, started, detection.confidence)
 
     def _result(self, source: str, target: str, translated: str, provider: str, cache_hit: bool, started: float, confidence: float) -> dict:

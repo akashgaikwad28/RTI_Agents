@@ -15,6 +15,11 @@ To explore the codebase and architecture, choose one of the index entries below:
 * 📦 **[Resource & Resource Inventory](file:///C:/Users/akash/RTI_Agents/docs/architecture/SYSTEM_INVENTORY.md)** — Core matrix tables detailing all 15 graph nodes, 26 registered MCP tools, SQLite/MongoDB structures, API routes, Redis configurations, and Prometheus metric catalogs.
 * 🔄 **[LangGraph Execution Flow](file:///C:/Users/akash/RTI_Agents/docs/architecture/LANGGRAPH_EXECUTION_FLOW.md)** — Graph setup, StateGraph compilation, node connections, and execution loops.
 * 🛡️ **[Security & Policy Controls](file:///C:/Users/akash/RTI_Agents/docs/architecture/SECURITY_ARCHITECTURE.md)** — Regex input checks, PII redaction, rate limits, and network boundary rules.
+* 🌐 **[Multilingual Translation](file:///C:/Users/akash/RTI_Agents/docs/architecture/MULTILINGUAL_TRANSLATION.md)** — Asynchronous translation router, Redis caching, and IndicTrans-to-Gemini fallback mechanics.
+* ⚙️ **[Data Ingestion Pipeline](file:///C:/Users/akash/RTI_Agents/docs/architecture/DATA_PIPELINE.md)** — Asynchronous config-driven web scraper, HTML/PDF parsers, text cleaners, smart chunking, and FAISS vector lifecycle updates.
+* 💾 **[Database & Storage Architecture](file:///C:/Users/akash/RTI_Agents/docs/architecture/DATABASE_ARCHITECTURE.md)** — Hybrid DB setups, SQLite/Neon state persistence, Redis caches, and MongoDB Atlas Vector Search configuration.
+* 🧹 **[Codebase Evolution & Legacy Guide](file:///C:/Users/akash/RTI_Agents/docs/architecture/LEGACY_MIGRATION_AND_CLEANUP_GUIDE.md)** — Architectural standards detailing active async graph structures vs legacy LangChain synchronous baselines.
+* ❓ **[Interview Prep: 50 Q&A Guide](file:///C:/Users/akash/RTI_Agents/INTERVIEW_QUESTIONS.md)** — Comprehensive mock interview technical questions and answers designed for AI and Senior Python Developer roles.
 
 ---
 
@@ -38,7 +43,11 @@ docs/
 │   └── tracker_agent.md                # Submittal ID tracker and dispatcher
 │
 ├── architecture/                       # System platform internals
+│   ├── DATA_PIPELINE.md                # Ingestion crawler, chunking and FAISS pipeline
+│   ├── DATABASE_ARCHITECTURE.md        # Transactional, cache and vector database topologies
 │   ├── LANGGRAPH_EXECUTION_FLOW.md     # StateGraph and router engine
+│   ├── LEGACY_MIGRATION_AND_CLEANUP_GUIDE.md # Codebase evolution and active vs legacy directory layout
+│   ├── MULTILINGUAL_TRANSLATION.md     # Translation router and cascade flow
 │   ├── RAG_RETRIEVAL_FLOW.md           # FAISS index and PDF ingestion OCR
 │   ├── SECURITY_ARCHITECTURE.md        # Input sanitization and redaction
 │   └── SYSTEM_INVENTORY.md             # Master registry of system resources

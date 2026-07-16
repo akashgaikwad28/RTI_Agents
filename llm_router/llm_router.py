@@ -40,6 +40,7 @@ TASK_ROUTING = {
     "classification_fallback": ("groq", settings.GROQ_MODEL_SMART),
     "review": ("groq", settings.GROQ_MODEL_SMART),
     "reflection": ("groq", settings.GROQ_MODEL_SMART),
+    "translation": ("gemini", settings.GEMINI_MODEL),
     "default": ("groq", settings.GROQ_MODEL_SMART),
 }
 

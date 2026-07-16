@@ -1,7 +1,7 @@
 """
 tools/translate_tool.py
 ------------------------
-Async translation tool using googletrans.
+Async translation tool using enterprise TranslatorRouter.
 Translates non-English RTI queries to English.
 """
 
@@ -12,14 +12,13 @@ logger = get_logger(__name__)
 
 async def translate_to_english(text: str) -> str:
     """
-    Translates text to English using googletrans.
+    Translates text to English using the enterprise TranslatorRouter.
     Falls back to original text on failure.
     """
     try:
-        from googletrans import Translator
-        translator = Translator()
-        result = translator.translate(text, dest="en")
-        translated = result.text
+        from multilingual.translation.translator_router import TranslatorRouter
+        result = await TranslatorRouter().translate(text, target_language="en")
+        translated = result.get("translated_text") or text
         logger.info(f"[TranslateTool] Translated: {text[:40]} → {translated[:40]}")
         return translated
     except Exception as e:

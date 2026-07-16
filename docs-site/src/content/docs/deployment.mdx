@@ -1,0 +1,39 @@
+---
+title: Deployment
+description: How to deploy RTI Agent to production environments.
+---
+
+# Deployment Architecture
+
+RTI Agent is containerized using Docker and is designed to run on Kubernetes (K8s) or any standard container orchestration platform.
+
+## Docker Setup
+
+### Backend (FastAPI + LangGraph)
+The backend uses a multi stage Docker build to keep the image lightweight.
+```bash
+docker build -t rti-agent-backend -f backend/Dockerfile .
+```
+- **Base Image**: `python:3.11-slim`
+- **Dependencies**: Poetry is used to install dependencies. FAISS indices are mounted as external volumes.
+
+### Admin Dashboard & Docs (Next.js)
+```bash
+docker build -t rti-agent-frontend -f frontend/Dockerfile .
+```
+- Built utilizing Next.js standalone output mode for optimal container sizing.
+
+## Infrastructure as Code (Terraform / Pulumi)
+
+We recommend deploying RTI Agent using our provided IaC templates:
+
+1. **VPC & Subnets**: Deploy services in private subnets, with only the API Gateway and frontend exposed to the public internet.
+2. **PostgreSQL**: Used for LangGraph checkpointing (state management). RDS or Cloud SQL is recommended.
+3. **Redis**: Used for rate limiting and temporary caching.
+
+## CI/CD Pipeline (GitHub Actions)
+
+Our repository includes standard GitHub Action workflows:
+1. `test.yml`: Runs `pytest`, linting (`ruff`, `mypy`), and the RAGAS evaluation pipeline.
+2. `build.yml`: Builds Docker images and pushes them to a container registry (ECR/GCR).
+3. `deploy.yml`: Triggers a rolling update in the Kubernetes cluster.

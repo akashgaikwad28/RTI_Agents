@@ -95,3 +95,38 @@ def test_html_report_generator():
         html = f.read()
     assert "test_run_123" in html
     assert "Average Hallucination Rate" in html
+
+@pytest.mark.asyncio
+async def test_evaluate_ragas_async():
+    """Verify evaluate_ragas_async executes correctly and handles mocked scores."""
+    from evaluation.retrieval_eval import evaluate_ragas_async
+    from ragas.metrics.collections import Faithfulness, AnswerRelevancy
+    from ragas.metrics.result import MetricResult
+    from config.settings import settings
+    
+    original_state = settings.ENABLE_RAGAS_EVALS
+    settings.ENABLE_RAGAS_EVALS = True
+    
+    try:
+        mock_result = MetricResult(value=0.92, reason="mocked evaluation")
+        
+        with patch.object(Faithfulness, "ascore", return_value=mock_result) as mock_faith, \
+             patch.object(AnswerRelevancy, "ascore", return_value=mock_result) as mock_rel:
+             
+            scores = await evaluate_ragas_async(
+                query="What is the capital of France?",
+                answer="Paris is the capital of France.",
+                contexts=["France is a country in Europe. Its capital is Paris."]
+            )
+            
+            assert "faithfulness" in scores
+            assert "answer_relevance" in scores
+            assert scores["faithfulness"] == 0.92
+            assert scores["answer_relevance"] == 0.92
+            
+            mock_faith.assert_called_once()
+            mock_rel.assert_called_once()
+            
+    finally:
+        settings.ENABLE_RAGAS_EVALS = original_state
+

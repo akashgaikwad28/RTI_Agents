@@ -1,0 +1,78 @@
+---
+title: Codebase Evolution & Legacy Guide
+description: Architectural standards detailing active async graph structures vs legacy LangChain synchronous baselines.
+---
+
+# Codebase Evolution & Legacy Migration Guide
+*Guidelines on active production directories vs. legacy LangChain baselines*
+
+---
+
+## 📌 Codebase Architecture Overview
+
+During the migration of the RTI Agent from a monolithic, synchronous LangChain architecture to an asynchronous, graph based LangGraph multi agent orchestrator, several directories were refactored. 
+
+To prevent architectural regression, developers **MUST** understand the difference between active production modules and legacy baselines.
+
+---
+
+## 📂 Active vs. Legacy Directory Structure
+
+Below is the developer centric classification of the directories in the workspace:
+
+```
+RTI_Agents/
+├── api/                    # ACTIVE: FastAPI Routes, Middlewares, and Schemas
+├── config/                 # ACTIVE: Pydantic-Settings variables (.env)
+├── graph/                  # ACTIVE: LangGraph Orchestration & 16 Agent Nodes
+│   └── nodes/              # ACTIVE: Async, stateless node implementations
+├── llm_router/             # ACTIVE: Dynamic model selector & Circuit Breakers
+├── communication/          # ACTIVE: Async Event Bus (SSE Real-time Streaming)
+├── mcp_clients/            # ACTIVE: Database clients (Async MongoDB Motor wrapper)
+├── observability/          # ACTIVE: Structured JSON loggers, Prometheus metrics
+├── prompts/                # ACTIVE: Structuring prompts for graph nodes
+├── rag/                    # ACTIVE: Ingestion pipelines, loaders, and FAISS stores
+├── security/               # ACTIVE: PII Maskers, Sanitizers, and Policy Enforcers
+├── tools/                  # ACTIVE: Standardized MCP tools (subclassed from BaseTool)
+│
+├── chains/                 # LEGACY: Old synchronous LLMChain baselines (GPT-3.5)
+├── agents/                 # LEGACY: Old OOP-style synchronous agent classes
+└── utils/                  # LEGACY: Old logging configurations & helpers
+```
+
+---
+
+## 🛠️ Detailed Component Directory Mapping
+
+### 1. Active Directories (Do NOT modify without graph impact)
+*   **`graph/`**: Contains the active LangGraph execution logic.
+    *   `state.py`: Master `RTIAgentState` TypedDict. It is the single source of truth.
+    *   `router.py`: Conditional edge routing functions.
+    *   `graph_builder.py`: Singleton graph compiler configures SQLite/PostgreSQL checkpointers and compiles the state machine with Human in the Loop (`approval_node`) intercepts.
+    *   `nodes/`: Highly concurrent, async functions representing individual agents (e.g. `router_node`, `reviewer_node`).
+*   **`llm_router/`**: Manages model allocation. It routes requests dynamically to Groq (Llama 3) or Gemini based on task type and operates a `CircuitBreaker` pattern to fallback across API providers on failures.
+*   **`communication/`**: Operates an async event bus (`EventBus`). It allows nodes to publish lifecycle states that are immediately streamed to the frontend via Server Sent Events (SSE).
+*   **`tools/` (Subdirectories)**: Every active tool inherits from the base class `tools/base/base_tool.py`, registers an `input_schema` Pydantic model, and is automatically registered in `tools/base/tool_registry.py`.
+*   **`observability/`**: Standardizes structured JSON string outputs suitable for Grafana Loki or Elasticsearch.
+
+### 2. Legacy Directories (DO NOT import from inside active nodes)
+*   **`chains/`**: Holds monolithic pipelines (e.g., `ClassifierChain`) built using the deprecated LangChain v0.1 `LLMChain` classes. These run synchronously, rely on OpenAI's `gpt-3.5-turbo`, and suffer from poor error handling.
+*   **`agents/`**: An older Object Oriented wrapper structure (inheriting from `BaseAgent`). These maintain local, state unsafe memory dicts, which make concurrent user sessions unstable.
+*   **`utils/`**: Replaced by `observability/`. The file `utils/logger.py` uses basic text stream loggers instead of production JSON.
+
+---
+
+## 🔍 Why Legacy Code is Maintained
+
+Legacy directories (`chains/`, `agents/`, `utils/`) are temporarily preserved for:
+1.  **A/B Regression Evaluation:** When modifying graph prompts, developers can execute baseline evaluation tests against these legacy models to measure accuracy, cost, and latency deltas.
+2.  **Legacy Script Support:** Several offline CLI debugging scripts reference these modules to simulate older runs.
+
+---
+
+## ⚠️ Standards for New Developers
+
+1.  **Imports Restriction:** Never import classes from `chains/`, `agents/`, or `utils/` into any file inside `graph/`, `api/`, or `tools/`. Doing so will force synchronous, deprecated code paths and break FastAPI's async execution loop.
+2.  **Creating New Nodes:** To create a new agent, write an async function in `graph/nodes/`, register it inside `graph/state.py` (if new state variables are needed), and update `graph_builder.py` and `graph/router.py`.
+3.  **Creating New Tools:** Every new tool **MUST** inherit from `BaseTool`, define an input schema using Pydantic `BaseModel`, and be registered inside the list in `tools/base/tool_registry.py` under `auto_register_tools`.
+4.  **Logging Standard:** Never use standard `print()` statements or legacy `utils.logger`. Always use structured JSON loggers (`from observability.structured_logger import get_logger`).

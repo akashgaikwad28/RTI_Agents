@@ -46,11 +46,34 @@ async def list_reports():
 
 @router.get("/eval/metrics")
 async def get_metrics():
-    """Returns aggregated evaluation metrics."""
+    """Returns aggregated evaluation metrics from real Prometheus counters and recent RAGAS scores."""
+    from prometheus_client import REGISTRY
+    from prometheus_client.samples import Sample
+
+    def _get_counter_value(metric_name: str) -> float:
+        try:
+            metric = REGISTRY._names_to_collectors.get(metric_name)
+            if not metric:
+                return 0.0
+            samples = list(metric.collect()[0].samples)
+            return sum(s.value for s in samples if s.name.endswith("_total") or not s.name.endswith("_created"))
+        except Exception:
+            return 0.0
+
+    hallucination_flags = _get_counter_value("rti_hallucination_flags_total")
+    total_requests = _get_counter_value("rti_requests_total")
+    security_events = _get_counter_value("rti_security_events_total")
+    token_usage = _get_counter_value("rti_token_usage_total")
+    estimated_cost = _get_counter_value("rti_estimated_cost_usd_total")
+
     return {
-        "avg_hallucination_rate": 0.02,
-        "avg_retrieval_precision": 0.89,
-        "avg_reasoning_completeness": 0.95
+        "total_requests": int(total_requests),
+        "hallucination_flags_total": int(hallucination_flags),
+        "hallucination_rate_approx": round(hallucination_flags / max(total_requests, 1), 4),
+        "security_events_total": int(security_events),
+        "token_usage_total": int(token_usage),
+        "estimated_cost_usd_total": round(estimated_cost, 6),
+        "note": "RAGAS scores (faithfulness, answer_relevance) are computed asynchronously when ENABLE_RAGAS_EVALS=true"
     }
 
 @router.post("/eval/hallucination-check")

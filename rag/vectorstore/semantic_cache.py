@@ -5,6 +5,7 @@ Redis-backed semantic cache for retrieval results.
 Avoids redundant FAISS calls for identical/similar queries.
 """
 
+import asyncio
 import redis.asyncio as aioredis
 from config.settings import settings
 from observability.structured_logger import get_logger
@@ -12,6 +13,8 @@ from observability.structured_logger import get_logger
 logger = get_logger(__name__)
 
 _cache_instance: "SemanticCache | None" = None
+# Fix: async lock to guard singleton creation and prevent connection leak race condition
+_cache_lock = asyncio.Lock()
 
 
 class SemanticCache:
@@ -41,15 +44,20 @@ class SemanticCache:
             logger.warning(f"[SemanticCache] GET failed: {e}")
             return None
 
-    async def set(self, key: str, value: str, ttl: int = None):
+    async def set(self, key: str, value: str, ttl: int | None = None) -> None:
         if not self._client:
             return
         try:
-            await self._client.set(key, value, ex=ttl or settings.REDIS_SEMANTIC_CACHE_TTL)
+            # Fix: use explicit None check instead of falsy check to allow ttl=0 (no expiry)
+            effective_ttl = ttl if ttl is not None else settings.REDIS_SEMANTIC_CACHE_TTL
+            if effective_ttl and effective_ttl > 0:
+                await self._client.set(key, value, ex=effective_ttl)
+            else:
+                await self._client.set(key, value)
         except Exception as e:
             logger.warning(f"[SemanticCache] SET failed: {e}")
 
-    async def delete(self, key: str):
+    async def delete(self, key: str) -> None:
         if not self._client:
             return
         try:
@@ -63,9 +71,13 @@ class SemanticCache:
 
 
 async def get_semantic_cache() -> SemanticCache:
-    """Returns singleton SemanticCache."""
+    """Returns singleton SemanticCache, protected by an async lock to prevent race conditions."""
     global _cache_instance
-    if _cache_instance is None:
-        _cache_instance = SemanticCache()
-        await _cache_instance.connect()
+    if _cache_instance is not None:
+        return _cache_instance
+    async with _cache_lock:
+        # Double-checked locking: re-check after acquiring lock
+        if _cache_instance is None:
+            _cache_instance = SemanticCache()
+            await _cache_instance.connect()
     return _cache_instance

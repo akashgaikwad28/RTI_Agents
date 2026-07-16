@@ -23,7 +23,7 @@ class TelemetryFacade:
     @staticmethod
     def _emit(logger_instance: logging.Logger, event_model: Any, msg: str = ""):
         """Converts pydantic model to dict and pushes to logger."""
-        extra = event_model.dict(exclude_none=True)
+        extra = event_model.model_dump(exclude_none=True)
         level_value = getattr(logging, event_model.level.value, logging.INFO)
         # We pass the event name as the message if none provided, 
         # but the real meat is in the `extra` dict which gets flattened by JSON formatter.

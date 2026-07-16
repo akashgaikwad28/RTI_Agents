@@ -8,6 +8,7 @@ POST /approve — Human approval/rejection of pending RTI
 
 import re
 import uuid
+import random
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException, Depends
 from api.schemas import RTISubmitRequest, RTISubmitResponse, ApprovalRequest, ApprovalResponse, RespondRequest, RespondResponse
@@ -15,9 +16,11 @@ from graph.state import RTIAgentState
 from mcp_clients.mongo_client import get_mongo_client
 from security.sanitizer import sanitize_query
 from security.pii_masker import mask_pii
+from security.ai_guardrails import aguard_ai_input
 from observability.structured_logger import get_logger
 from observability.metrics import rti_requests_total, rti_active_requests
 from observability.audit_logger import log_audit_action
+from observability.context import set_graph_context, reset_context
 from api.auth.jwt_handler import get_current_user
 from tools.department_lookup import get_canonical_departments_for_registration
 
@@ -44,6 +47,12 @@ async def submit_rti(payload: RTISubmitRequest, request: Request):
         sanitized_query = sanitize_query(payload.query_text)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=f"Invalid query: {str(e)}")
+
+    # ── Guardrail check (H4: Llama Guard / regex injection detection) ──
+    guard_result = await aguard_ai_input(sanitized_query)
+    if not guard_result["allowed"]:
+        logger.warning(f"[/submit] Guardrail blocked request | request_id={request_id} | flags={guard_result['flags']}")
+        raise HTTPException(status_code=400, detail=f"Request blocked by security guardrails: {guard_result['flags']}")
 
     # ── Build initial state ────────────────────────────────────────
     initial_state: RTIAgentState = {
@@ -161,6 +170,8 @@ async def submit_rti(payload: RTISubmitRequest, request: Request):
     )
 
     async def run_workflow():
+        # H7: Set graph_run_id ContextVar so all node logs are correlated
+        ctx_tokens = set_graph_context(graph_run_id=thread_id)
         try:
             await graph.ainvoke(initial_state, config=config)
             logger.info(f"[/submit] Graph paused at approval | request_id={request_id}")
@@ -196,6 +207,27 @@ async def submit_rti(payload: RTISubmitRequest, request: Request):
                         {"$set": enriched_update},
                     )
                     logger.info(f"[/submit] Enriched state persisted | request_id={request_id} | dept={enriched.get('department')}")
+
+                    # H10: 10% RAGAS eval sampling — fire-and-forget background evaluation
+                    if random.random() < 0.10:
+                        try:
+                            from evaluation.retrieval_eval import evaluate_ragas_async
+                            ragas_scores = await evaluate_ragas_async(
+                                query=sanitized_query,
+                                answer=enriched.get("formal_query", ""),
+                                contexts=enriched.get("retrieved_context", []),
+                            )
+                            if ragas_scores:
+                                logger.info(f"[RAGAS] Sampled eval scores | request_id={request_id} | scores={ragas_scores}")
+                                await _mongo.db["ragas_scores"].insert_one({
+                                    "request_id": request_id,
+                                    "thread_id": thread_id,
+                                    "scores": ragas_scores,
+                                    "created_at": datetime.now(timezone.utc),
+                                })
+                        except Exception as ragas_err:
+                            logger.warning(f"[RAGAS] Background eval failed (non-critical): {ragas_err}")
+
             except Exception as persist_err:
                 logger.error(f"[/submit] Failed to persist enriched state: {persist_err}")
 
@@ -211,6 +243,7 @@ async def submit_rti(payload: RTISubmitRequest, request: Request):
                 pass
         finally:
             rti_active_requests.dec()
+            reset_context(ctx_tokens)
 
     request.app.state.background_tasks = getattr(request.app.state, "background_tasks", set())
     import asyncio

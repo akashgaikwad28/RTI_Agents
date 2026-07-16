@@ -29,6 +29,7 @@ from graph.router import route_after_approval, route_after_consensus, route_afte
 
 from graph.state import RTIAgentState
 from observability.structured_logger import get_logger
+from observability.graph_tracer import log_graph_start
 
 logger = get_logger(__name__)
 
@@ -166,13 +167,26 @@ lazy_checkpointer = LazyPostgresCheckpointer()
 
 
 def build_graph(enable_hitl: bool = True):
+    # C4: Fix SQLite checkpointing (was silently falling to MemorySaver)
     if settings.CHECKPOINTER_TYPE == "postgres" and settings.POSTGRES_CHECKPOINTER_URL:
         checkpointer = lazy_checkpointer
+        logger.info("[GraphBuilder] Using PostgreSQL checkpointer")
+    elif settings.CHECKPOINTER_TYPE == "sqlite":
+        try:
+            import os
+            db_path = settings.CHECKPOINTER_DB
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            conn = sqlite3.connect(db_path, check_same_thread=False)
+            checkpointer = SqliteSaver(conn)
+            logger.info(f"[GraphBuilder] Using SQLite checkpointer at {db_path}")
+        except Exception as e:
+            logger.warning(f"[GraphBuilder] SQLite checkpointer failed ({e}), falling back to MemorySaver")
+            from langgraph.checkpoint.memory import MemorySaver
+            checkpointer = MemorySaver()
     else:
-        db_path = settings.CHECKPOINTER_DB
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        conn = sqlite3.connect(db_path, check_same_thread=False)
-        checkpointer = SqliteSaver(conn)
+        from langgraph.checkpoint.memory import MemorySaver
+        checkpointer = MemorySaver()
+        logger.warning("[GraphBuilder] Using in-memory checkpointer — state will be lost on restart")
 
     builder = StateGraph(RTIAgentState)
 
@@ -216,6 +230,8 @@ def build_graph(enable_hitl: bool = True):
 
     graph = builder.compile(checkpointer=checkpointer, interrupt_before=["approval_node"] if enable_hitl else [])
     logger.info(f"[GraphBuilder] Graph compiled | nodes={list(builder.nodes.keys())} | hitl={'enabled' if enable_hitl else 'disabled'}")
+    # H3: Log graph lifecycle event
+    log_graph_start("rti_agent", hitl_enabled=enable_hitl)
     return graph
 
 

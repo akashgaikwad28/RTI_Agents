@@ -10,14 +10,15 @@ from rag.evaluation.retrieval_metrics import context_relevance, grounding_score,
 def evaluate_workflow(state: dict) -> dict:
     contexts = state.get("retrieved_context", [])
     formal_query = state.get("formal_query", "")
-    retrieval_results = []
+    # Use actual retrieval metadata from the graph state instead of empty list
+    retrieval_metadata = state.get("retrieval_metadata", [])
     return {
         "hallucination_rate": hallucination_rate(formal_query, contexts),
         "citation_grounding_score": grounding_score(formal_query, contexts),
-        "context_relevance": context_relevance(retrieval_results),
+        "context_relevance": context_relevance(retrieval_metadata),
         "reasoning_completeness": reasoning_completeness(state.get("reasoning_trace", [])),
         "compliance_score": rti_compliance_score(formal_query),
         "approval_success": state.get("approval_status") == "approved",
-        "latency": sum(state.get("agent_durations", {}).values()),
+        "latency_ms": sum(state.get("agent_durations", {}).values()),
     }
 

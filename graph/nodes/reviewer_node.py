@@ -16,7 +16,9 @@ from llm_router.llm_router import get_llm
 
 from observability.telemetry import telemetry
 from observability.logger import get_logger
-from observability.metrics import rti_agent_duration, rti_hallucination_flags_total
+from observability.metrics import rti_agent_duration, rti_hallucination_flags_total, rti_review_score
+from observability.llm_telemetry import track_llm_call
+from security.output_validator import validate_grounded_output
 
 logger = get_logger(__name__)
 
@@ -132,6 +134,28 @@ async def reviewer_node(state: RTIAgentState) -> dict:
 
     duration_ms = (time.time() - start_time) * 1000
     rti_agent_duration.labels(agent="reviewer_node").observe(duration_ms / 1000)
+    rti_review_score.observe(review_score)
+
+    # H1: Track LLM cost (Gemini Pro for review)
+    track_llm_call(
+        operation="reviewer_node",
+        provider="gemini",
+        model_name="gemini-2.5-flash",
+        prompt_tokens=0,  # not exposed by structured output wrapper
+        completion_tokens=0,
+        latency_ms=duration_ms,
+        success=review_passed
+    )
+
+    # H5: Validate grounded output before passing to approval
+    citations = state.get("retrieval_citations", [])
+    output_validation = validate_grounded_output(
+        text=formal_query,
+        citations=citations,
+        confidence=review_score
+    )
+    if not output_validation["valid"]:
+        logger.warning(f"[ReviewerNode] Output validation issues={output_validation['issues']} | request_id={request_id}")
 
     workflow_path = list(state.get("workflow_path", [])) + ["reviewer_node"]
 

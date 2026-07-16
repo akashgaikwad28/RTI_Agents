@@ -51,7 +51,7 @@ class HybridRetriever:
         if not candidates and normalized_department:
             candidates = await self.semantic.retrieve(query, language=language, k=max(k * 4, k))
 
-        reranked = self._rerank(query, candidates, normalized_department)[:k]
+        reranked = self._rerank(query, candidates, normalized_department, language)[:k]
         if reranked:
             retrieval_hit_rate.labels(source="faiss").inc()
             await self._cache_set(cache_key, reranked)
@@ -60,7 +60,7 @@ class HybridRetriever:
         rag_retrieval_latency.observe(time.perf_counter() - started)
         return reranked, False, _confidence(reranked)
 
-    def _rerank(self, query: str, results: list[RetrievalResult], department: str) -> list[RetrievalResult]:
+    def _rerank(self, query: str, results: list[RetrievalResult], department: str, language: str) -> list[RetrievalResult]:
         deduped: dict[str, RetrievalResult] = {}
         for result in results:
             key = result.metadata.source_hash or hashlib.sha256(result.text[:500].encode()).hexdigest()
@@ -71,12 +71,18 @@ class HybridRetriever:
         ranked: list[RetrievalResult] = []
         for result in deduped.values():
             score = result.score
-            if department and result.metadata.department.lower() == department.lower():
+            # Fix: guard against None department on document side (AttributeError crash)
+            doc_dept = result.metadata.department or ""
+            if department and doc_dept.lower() == department.lower():
                 score += 0.1
-            score += keyword_overlap_score(query, result.text)
+
+            doc_language = result.metadata.language
+            if not language or language == "unknown" or doc_language == language:
+                score += keyword_overlap_score(query, result.text)
+
             score += apply_recency_boost(result)
-            result.score = round(min(score, 1.0), 4)
-            ranked.append(result)
+            # Fix: use model_copy to avoid mutating shared mutable objects
+            ranked.append(result.model_copy(update={"score": round(min(score, 1.0), 4)}))
         return sorted(ranked, key=lambda item: item.score, reverse=True)
 
     async def _cache_get(self, key: str) -> list[RetrievalResult] | None:
@@ -107,7 +113,7 @@ def _cache_key(query: str, department: str, language: str, k: int) -> str:
 def _confidence(results: list[RetrievalResult]) -> float:
     if not results:
         return 0.0
-    top = results[0].score
-    coverage = min(len(results) / max(getattr(settings, "FAISS_TOP_K", settings.RAG_TOP_K), 1), 1.0)
-    return round((top * 0.75) + (coverage * 0.25), 4)
+    # Fix: use mean score across results, not an arbitrary coverage formula
+    mean_score = sum(r.score for r in results) / len(results)
+    return round(mean_score, 4)
 

@@ -13,14 +13,30 @@ from multilingual.retrieval.language_reranker import LanguageReranker
 
 
 class MultilingualRetriever:
+    # Fix: instantiate helpers once per retriever instance, not once per request call
+    def __init__(self):
+        self._normalizer = UnicodeNormalizer()
+        self._detector = LanguageDetector()
+        self._mapper = CrossLingualMapper()
+        self._search = CrossLingualSearch()
+        self._reranker = LanguageReranker()
+        self._localizer = CitationLocalizer()
+
     async def retrieve(self, query: str, department: str = "", response_language: str | None = None, k: int = 5, db: Any = None) -> dict:
-        normalized = UnicodeNormalizer().normalize(query)
-        detection = LanguageDetector().detect(normalized)
-        mapped = await CrossLingualMapper().map_query(normalized, detection.language, db=db)
-        results, cache_hit, confidence = await CrossLingualSearch().search(mapped["queries"], department=department, k=k)
-        language = response_language or detection.language if detection.language != "unknown" else "en"
-        reranked = LanguageReranker().rerank(results, detection.language, preferred_language=language)[:k]
-        localizer = CitationLocalizer()
+        normalized = self._normalizer.normalize(query)
+        detection = self._detector.detect(normalized)
+        mapped = await self._mapper.map_query(normalized, detection.language, db=db)
+        results, cache_hit, confidence = await self._search.search(mapped["queries"], department=department, k=k)
+
+        # Fix operator precedence bug: response_language must override even when detection is "unknown"
+        if response_language:
+            language = response_language
+        elif detection.language != "unknown":
+            language = detection.language
+        else:
+            language = "en"
+
+        reranked = self._reranker.rerank(results, detection.language, preferred_language=language)[:k]
         return {
             "query": query,
             "normalized_query": normalized,
@@ -33,9 +49,10 @@ class MultilingualRetriever:
                 {
                     "text": result.text,
                     "score": result.score,
-                    "citation": localizer.localize(result, language),
+                    "citation": self._localizer.localize(result, language),
                     "metadata": result.metadata.model_dump(),
                 }
                 for result in reranked
             ],
         }
+

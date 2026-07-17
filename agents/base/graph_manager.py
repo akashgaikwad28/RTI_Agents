@@ -8,7 +8,7 @@ Manages LangGraph workflow for RTI Agents:
 - Integrates logging, memory, and exception handling
 """
 
-from typing import Any, Dict, Optional, get_type_hints
+from typing import Any, Dict, Optional
 from utils.logger import logger
 from utils.exception_handler import exception_handler
 from agents.nodes.classifier_node import ClassifierNode
@@ -51,7 +51,9 @@ class GraphManager:
         return self.agents.get(agent_name)
 
     @exception_handler
-    def run_agent(self, agent_name: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def run_agent(
+        self, agent_name: str, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Executes a registered agent's run method with flexible context.
         Detects whether the agent expects `context` or `**kwargs`.
@@ -66,7 +68,10 @@ class GraphManager:
         else:
             filtered_context = context
 
-        logger.info(f"🚀 Running agent: {agent_name} with keys: {list(filtered_context.keys())}")
+        logger.info(
+            f"🚀 Running agent: {agent_name} with keys: "
+            f"{list(filtered_context.keys())}"
+        )
 
         # Detect agent run() signature dynamically
         try:
@@ -74,11 +79,15 @@ class GraphManager:
             params = list(sig.parameters.values())
 
             # Case 1: expects (self, context)
-            if len(params) == 2 and params[1].annotation in (Dict[str, Any], dict):
+            if len(params) == 2 and params[1].annotation in (
+                Dict[str, Any], dict
+            ):
                 return agent.run(filtered_context)
 
             # Case 2: expects (self, **kwargs)
-            elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+            elif any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in params
+            ):
                 return agent.run(**filtered_context)
 
             # Default fallback
@@ -105,10 +114,13 @@ class GraphManager:
         return self.nodes.get(node_name)
 
     @exception_handler
-    def run_workflow(self, user_input: Dict[str, Any]) -> Dict[str, Any]:
+    def run_workflow(
+        self, user_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Executes the full workflow:
-        User Input → Translator → Classifier → Formatter → Info Fetcher → Tracker
+        User Input → Translator → Classifier → Formatter → Info Fetcher
+        → Tracker
         """
         logger.info("🚀 Running RTI workflow in GraphManager.")
         context = dict(user_input)

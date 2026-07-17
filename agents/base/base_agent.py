@@ -11,16 +11,22 @@ Provides common functionality for all RTI agents:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from utils.logger import logger
 from utils.exception_handler import exception_handler
-from mcp_clients import groq_client, gemini_client, translator_client, mongo_client
+from mcp_clients import (
+    groq_client,
+    gemini_client,
+    translator_client,
+    mongo_client,
+)
 from memory.memory_manager import MemoryManager
 
 
 class BaseAgent(ABC):
     """
-    Base Agent class to be inherited by all agents (classifier, formatter, tracker, etc.)
+    Base Agent class to be inherited by all agents (classifier, formatter,
+    tracker, etc.)
     """
 
     def __init__(self, agent_name: str):
@@ -38,13 +44,19 @@ class BaseAgent(ABC):
         try:
             if hasattr(self.groq_client, "generate"):
                 # ✅ Fix: pass prompt as user_prompt
-                response = self.groq_client.generate(user_prompt=prompt, temperature=temperature)
+                response = self.groq_client.generate(
+                    user_prompt=prompt, temperature=temperature
+                )
                 output = getattr(response, "text", response)
             elif hasattr(self.groq_client, "chat"):
                 response = self.groq_client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant for RTI automation."},
+                        {
+                            "role": "system",
+                            "content": "You are a helpful assistant for RTI "
+                                       "automation."
+                        },
                         {"role": "user", "content": prompt},
                     ],
                     temperature=temperature
@@ -57,8 +69,6 @@ class BaseAgent(ABC):
         except Exception as e:
             logger.error(f"[{self.agent_name}] Groq API error: {str(e)}")
             raise
-
-
     # ✅ Keep Gemini the same if it uses `.generate()`
     @exception_handler
     def call_gemini(self, prompt: str, temperature: float = 0.7) -> str:
@@ -66,7 +76,9 @@ class BaseAgent(ABC):
         Call Gemini (Google GenAI) for generation
         """
         logger.info(f"[{self.agent_name}] Calling Gemini LLM...")
-        response = self.gemini_client.generate(prompt=prompt, temperature=temperature)
+        response = self.gemini_client.generate(
+            prompt=prompt, temperature=temperature
+        )
         logger.debug(f"[{self.agent_name}] Gemini Response: {response}")
         return response
 

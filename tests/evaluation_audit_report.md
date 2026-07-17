@@ -71,7 +71,7 @@ tests/test_rag.py::test_faiss_add_and_search_chunks
   <frozen importlib._bootstrap>:241: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 20 passed, 6 warnings in 8.56s ========================
+======================= 20 passed, 6 warnings in 10.29s =======================
 
 ```
 

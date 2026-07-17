@@ -4,6 +4,7 @@ import traceback
 from functools import wraps
 from utils.logger import logger
 
+
 def exception_handler(func):
     """
     Decorator that logs detailed exception information with traceback.
@@ -17,7 +18,8 @@ def exception_handler(func):
             if tb:
                 filename, line, func_name, _ = tb[-1]
                 logger.error(
-                    f"Exception occurred in {filename}, line {line}, in {func_name}: {str(e)}",
+                    f"Exception occurred in {filename}, "
+                    f"line {line}, in {func_name}: {str(e)}",
                     exc_info=True
                 )
             else:

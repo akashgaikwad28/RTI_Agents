@@ -2,7 +2,6 @@
 
 import logging
 import logging.config
-from logging.handlers import RotatingFileHandler
 import os
 import json
 from datetime import datetime
@@ -12,6 +11,7 @@ LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 LOG_FILE_PATH = os.path.join(LOG_DIR, "rti_system.log")
+
 
 # JSON Formatter for structured logs
 class JSONFormatter(logging.Formatter):
@@ -30,6 +30,7 @@ class JSONFormatter(logging.Formatter):
 
         return json.dumps(log_record, ensure_ascii=False)
 
+
 def get_logging_config():
     """Return a complete logging configuration dictionary."""
     return {
@@ -37,7 +38,10 @@ def get_logging_config():
         "disable_existing_loggers": False,
         "formatters": {
             "standard": {
-                "format": "%(asctime)s - [%(levelname)s] - %(name)s: %(message)s"
+                "format": (
+                    "%(asctime)s - [%(levelname)s] - "
+                    "%(name)s: %(message)s"
+                )
             },
             "json": {
                 "()": JSONFormatter
@@ -71,6 +75,7 @@ def get_logging_config():
             "memory": {"level": "INFO", "propagate": True},
         }
     }
+
 
 def setup_logging():
     """Set up logging configuration."""

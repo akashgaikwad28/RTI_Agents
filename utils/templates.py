@@ -22,7 +22,9 @@ class ResponseTemplates:
     """
 
     @staticmethod
-    def classifier_response(department: str, confidence: str, notes: str = "") -> Dict[str, Any]:
+    def classifier_response(
+        department: str, confidence: str, notes: str = ""
+     ) -> Dict[str, Any]:
         return {
             "agent": "ClassifierAgent",
             "timestamp": _utc_now_iso(),
@@ -34,7 +36,9 @@ class ResponseTemplates:
         }
 
     @staticmethod
-    def formatter_response(formatted_query: str, language: str = "en") -> Dict[str, Any]:
+    def formatter_response(
+        formatted_query: str, language: str = "en"
+    ) -> Dict[str, Any]:
         return {
             "agent": "FormatterAgent",
             "timestamp": _utc_now_iso(),
@@ -45,7 +49,9 @@ class ResponseTemplates:
         }
 
     @staticmethod
-    def info_fetcher_response(status: str, info: Optional[str] = None, notes: str = "") -> Dict[str, Any]:
+    def info_fetcher_response(
+        status: str, info: Optional[str] = None, notes: str = ""
+    ) -> Dict[str, Any]:
         return {
             "agent": "InfoFetcherAgent",
             "timestamp": _utc_now_iso(),
@@ -57,7 +63,12 @@ class ResponseTemplates:
         }
 
     @staticmethod
-    def tracker_response(tracking_id: str, status: str, last_updated: Optional[str] = None, notes: str = "") -> Dict[str, Any]:
+    def tracker_response(
+        tracking_id: str,
+        status: str,
+        last_updated: Optional[str] = None,
+        notes: str = ""
+    ) -> Dict[str, Any]:
         return {
             "agent": "TrackerAgent",
             "timestamp": _utc_now_iso(),
@@ -70,7 +81,9 @@ class ResponseTemplates:
         }
 
     @staticmethod
-    def error_response(agent: str, message: str, details: Optional[str] = None) -> Dict[str, Any]:
+    def error_response(
+        agent: str, message: str, details: Optional[str] = None
+    ) -> Dict[str, Any]:
         return {
             "agent": agent,
             "timestamp": _utc_now_iso(),
@@ -81,7 +94,9 @@ class ResponseTemplates:
         }
 
     @staticmethod
-    def memory_snapshot(session_id: str, content: Dict[str, Any]) -> Dict[str, Any]:
+    def memory_snapshot(
+        session_id: str, content: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return {
             "agent": "MemoryManager",
             "timestamp": _utc_now_iso(),

@@ -6,6 +6,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, AsyncMock
 
+import sys
+sys.modules['langchain_community.chat_models.vertexai'] = MagicMock()
+
 # --- Module-Level Patches to prevent import-time binding bypass ---
 import llm_router.llm_router
 from tests.mocks.mock_llm import MockLLM

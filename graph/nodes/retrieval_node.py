@@ -87,6 +87,6 @@ async def retrieval_node(state: RTIAgentState) -> dict:
         "cache_hit": cache_hit,
         "multilingual_context": {**state.get("multilingual_context", {}), "retrieval": payload},
         "tools_used": [*state.get("tools_used", []), "multilingual_rag_retriever"],
-        "workflow_path": workflow_path,
+        "workflow_path": state.get("workflow_path", []),
         "agent_durations": {**state.get("agent_durations", {}), "retrieval_node": duration_ms},
     }

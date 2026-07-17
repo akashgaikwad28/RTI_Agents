@@ -283,7 +283,7 @@ class MongoDBVectorStore(BaseVectorStore):
             "total_chunks": total_chunks,
             "active_chunks": active_chunks,
             "departments": sorted([d for d in departments if d]),
-            "languages": sorted([l for l in languages if l]),
+            "languages": sorted([lang for lang in languages if lang]),
         }
 
     async def document_history(self, document_id: str) -> list[dict[str, Any]]:

@@ -28,7 +28,7 @@ def test_real_pytesseract_execution():
     from PIL import Image
     import io
     
-    img = Image.new('RGB', (100, 30), color = (73, 109, 137))
+    img = Image.new('RGB', (100, 30), color=(73, 109, 137))
     img_byte_arr = io.BytesIO()
     img.save(img_byte_arr, format='PNG')
     

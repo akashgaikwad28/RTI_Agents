@@ -1,7 +1,7 @@
 """
 Analyzes whether a relevant context existed in the database but was not retrieved.
 """
-from typing import List, Dict
+from typing import List, Dict, Any
 
 class MissedContextAnalyzer:
     def __init__(self):

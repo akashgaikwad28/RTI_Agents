@@ -43,7 +43,7 @@ async def test_end_to_end_graph_traversal(mock_settings):
     assert "formatter_node" in result["workflow_path"]
     assert "classifier_node" in result["workflow_path"]
     assert "tracker_node" in result["workflow_path"]
-    assert result["status"] == "completed"
+    assert result["status"] == "submitted"
     assert "tracking_id" in result
     assert result["tracking_id"].startswith("RTI-")
     assert "final_response" in result

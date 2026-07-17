@@ -19,7 +19,9 @@ class MockMongoCollection:
     async def insert_one(self, doc):
         return MagicMock(inserted_id="mock_id")
     async def find_one(self, query):
-        return {"tracking_id": "RTI-2024-123456", "status": "submitted", "department": "Public Works Department", "created_at": "2026-05-20"}
+        if "tracking_id" in query:
+            return {"tracking_id": "RTI-2024-123456", "status": "submitted", "department": "Public Works Department", "created_at": "2026-05-20"}
+        return None
     def find(self, *args, **kwargs):
         mock_cursor = AsyncMock()
         mock_cursor.sort.return_value = mock_cursor

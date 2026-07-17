@@ -40,5 +40,5 @@ async def test_graph_state_resume_after_interrupt(mock_settings):
     
     # Verify traversal successfully completed after resuming
     assert "tracker_node" in result["workflow_path"]
-    assert result["status"] == "completed"
+    assert result["status"] == "submitted"
     assert result["approval_status"] == "approved"

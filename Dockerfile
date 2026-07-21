@@ -9,15 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off
 
-RUN useradd --create-home --shell /bin/bash appuser
-WORKDIR /home/appuser/app
-USER appuser
+# Create and activate virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-COPY --chown=appuser:appuser requirements.txt ./
-RUN python -m pip install --upgrade pip setuptools wheel
-RUN python -m pip install -r requirements.txt
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-COPY --chown=appuser:appuser . .
+COPY . .
 
 # Stage 2: Runtime
 FROM python:3.11.8-slim AS runtime
@@ -33,9 +33,10 @@ RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser/app
 USER appuser
 
-COPY --from=build /usr/local/lib/python3.11 /usr/local/lib/python3.11
-COPY --from=build /usr/local/bin /usr/local/bin
-COPY --chown=appuser:appuser --from=build /home/appuser/app /home/appuser/app
+COPY --from=build /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY --chown=appuser:appuser . .
 
 # Create writable directories
 RUN mkdir -p logs data/vector_store data/checkpoints data/documents data/synthetic_corpus

@@ -31,15 +31,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser/app
+# Create writable directories and set ownership before switching user
+RUN mkdir -p logs data/vector_store data/checkpoints data/documents data/synthetic_corpus && \
+    chown -R appuser:appuser /home/appuser/app
+
 USER appuser
 
 COPY --from=build /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --chown=appuser:appuser . .
-
-# Create writable directories
-RUN mkdir -p logs data/vector_store data/checkpoints data/documents data/synthetic_corpus
 
 ENV PYTHONPATH=/home/appuser/app \
     APP_ENV=production \

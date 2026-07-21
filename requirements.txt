@@ -13,6 +13,8 @@ langchain-google-genai>=1.0.6
 langgraph>=0.2.0
 langgraph-checkpoint-sqlite>=1.0.0
 langchain-google-vertexai>=1.0.0
+langchain-openai>=0.1.0
+langchain-text-splitters>=0.2.0
 
 # ── LLM Providers ─────────────────────────────────────────────────
 groq>=0.9.0
@@ -45,6 +47,7 @@ pymupdf>=1.24.0
 pytesseract>=0.3.10
 Pillow>=10.3.0
 python-multipart>=0.0.9
+rapidocr-onnxruntime>=1.3.0
 
 # ── Security ──────────────────────────────────────────────────────
 presidio-analyzer>=2.2.354
@@ -55,16 +58,21 @@ prometheus-client>=0.20.0
 python-json-logger>=2.0.7
 opentelemetry-sdk>=1.24.0
 opentelemetry-instrumentation-fastapi>=0.45b0
+psutil>=5.9.0
 
 # ── Evaluation ────────────────────────────────────────────────────
 ragas==0.4.3
 pytest>=8.2.0
 pytest-asyncio>=0.23.7
 httpx>=0.27.0
+faker>=25.0.0
+instructor>=1.2.0
+numpy>=1.26.0
 
 # ── Translation ───────────────────────────────────────────────────
 googletrans
 requests>=2.32.0
+indic-transliteration>=2.3.54
 
 # ── Email ─────────────────────────────────────────────────────────
 aiosmtplib>=3.0.0
